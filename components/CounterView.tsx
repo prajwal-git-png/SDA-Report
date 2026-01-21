@@ -43,7 +43,7 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
                          (filterStatus === 'Sale' && l.hasPurchased) || 
                          (filterStatus === 'Enquiry' && !l.hasPurchased);
       const brandMatch = filterBrand === 'All' || l.brands.includes(filterBrand);
-      const productMatch = filterProduct === 'All' || l.products.includes(filterProduct);
+      const productMatch = filterProduct === 'All' || l.products.some(p => p === filterProduct);
       return statusMatch && brandMatch && productMatch;
     });
   }, [dayLogsRaw, filterStatus, filterBrand, filterProduct]);
@@ -59,19 +59,25 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
     setSelectedBrands(prev => prev.includes(b) ? prev.filter(item => item !== b) : [...prev, b]);
   };
 
+  const getSelectionCountForCat = (cat: CounterCategory) => {
+    const list = cat === 'Kitchen Care' ? KITCHEN_PRODUCTS : cat === 'Garment Care' ? GARMENT_PRODUCTS : cat === 'Home Care' ? HOME_PRODUCTS : ['Other'];
+    return selectedProducts.filter(p => list.includes(p)).length;
+  };
+
   const handleSaveLead = () => {
     if (selectedProducts.length === 0) {
       alert("Please select at least one product.");
       return;
     }
-    if (selectedBrands.length === 0 && !customBrand) {
+    if (selectedBrands.length === 0 && !customBrand.trim()) {
       alert("Please select or enter a brand.");
       return;
     }
 
-    const finalBrands = [...selectedBrands];
-    if (customBrand && !finalBrands.includes(customBrand)) {
-      finalBrands.push(customBrand);
+    // Clean up brands: remove 'Other' if custom is provided, or keep custom
+    let finalBrands = selectedBrands.filter(b => b !== 'Other');
+    if (customBrand.trim()) {
+      finalBrands.push(customBrand.trim());
     }
 
     if (editingLogId) {
@@ -121,6 +127,9 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
     setSelectedBrands(known);
     if (custom.length > 0) {
       setCustomBrand(custom[0]);
+      if (!known.includes('Other')) {
+        setSelectedBrands(prev => [...prev, 'Other']);
+      }
     }
     
     setNewNote(log.note);
@@ -279,26 +288,27 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
           
           {/* Main Category */}
           <div className="space-y-2">
-             <label className="text-[8px] font-black uppercase opacity-40 ml-1">Core Department</label>
+             <label className="text-[8px] font-black uppercase opacity-40 ml-1">Department</label>
              <div className="flex flex-wrap gap-2">
-               {(['Garment Care', 'Kitchen Care', 'Home Care', 'Others'] as CounterCategory[]).map(cat => (
-                 <button 
-                  key={cat}
-                  onClick={() => {
-                    setNewCat(cat);
-                    setSelectedProducts([]);
-                  }}
-                  className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${newCat === cat ? 'bg-blue-600 text-white shadow-lg' : 'bg-white/5 text-gray-500'}`}
-                 >
-                   {cat}
-                 </button>
-               ))}
+               {(['Garment Care', 'Kitchen Care', 'Home Care', 'Others'] as CounterCategory[]).map(cat => {
+                 const count = getSelectionCountForCat(cat);
+                 return (
+                   <button 
+                    key={cat}
+                    onClick={() => setNewCat(cat)}
+                    className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all flex items-center space-x-2 ${newCat === cat ? 'bg-blue-600 text-white shadow-lg' : 'bg-white/5 text-gray-500'}`}
+                   >
+                     <span>{cat}</span>
+                     {count > 0 && <span className={`px-1.5 py-0.5 rounded-full text-[8px] ${newCat === cat ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'}`}>{count}</span>}
+                   </button>
+                 );
+               })}
              </div>
           </div>
 
           {/* Multiple Products */}
           <div className="space-y-2">
-             <label className="text-[8px] font-black uppercase opacity-40 ml-1">Products Wanted (Multiple)</label>
+             <label className="text-[8px] font-black uppercase opacity-40 ml-1">Select Products (Multi-select enabled)</label>
              <div className="flex flex-wrap gap-2">
                {currentCategoryProducts.map(p => (
                  <button 
@@ -314,7 +324,7 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
 
           {/* Multiple Brands */}
           <div className="space-y-2">
-             <label className="text-[8px] font-black uppercase opacity-40 ml-1">Brands Interested (Multiple)</label>
+             <label className="text-[8px] font-black uppercase opacity-40 ml-1">Interested Brands (Multi-select enabled)</label>
              <div className="flex flex-wrap gap-2">
                {BRANDS.map(b => (
                  <button 
@@ -326,14 +336,16 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
                  </button>
                ))}
              </div>
-             {(selectedBrands.includes('Other') || customBrand) && (
-               <div className="mt-3 animate-in fade-in zoom-in-95 duration-200">
+             {(selectedBrands.includes('Other')) && (
+               <div className="mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                 <label className="text-[8px] font-black uppercase opacity-40 ml-1 mb-1 block text-blue-500">Manual Brand Name</label>
                  <input 
                   type="text"
-                  placeholder="Enter manual brand name..."
+                  placeholder="Type brand name here..."
                   value={customBrand}
                   onChange={e => setCustomBrand(e.target.value)}
-                  className="w-full bg-black/40 rounded-xl px-4 py-3 text-xs font-bold border border-blue-500/30 outline-none focus:border-blue-500 transition-all"
+                  className="w-full bg-black/40 rounded-xl px-4 py-3 text-xs font-bold border border-blue-500/30 outline-none focus:border-blue-500 transition-all text-white"
+                  autoFocus
                  />
                </div>
              )}
@@ -349,22 +361,24 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
             />
           </div>
 
-          <button 
-            onClick={() => setNewPurchased(!newPurchased)}
-            className={`w-full py-4 rounded-2xl flex items-center justify-center space-x-3 transition-all ${newPurchased ? 'bg-green-600 shadow-lg shadow-green-600/20' : 'bg-white/5'}`}
-          >
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${newPurchased ? 'bg-white border-white' : 'border-gray-600'}`}>
-              {newPurchased && <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M20.285 2l-11.285 11.567-5.286-5.011-3.714 3.716 9 8.728 15-15.285z"/></svg>}
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-widest">{newPurchased ? 'Customer Purchased (Closed)' : 'Log as Enquiry'}</span>
-          </button>
+          <div className="grid grid-cols-1 gap-3">
+            <button 
+              onClick={() => setNewPurchased(!newPurchased)}
+              className={`w-full py-4 rounded-2xl flex items-center justify-center space-x-3 transition-all ${newPurchased ? 'bg-green-600 shadow-lg shadow-green-600/20' : 'bg-white/5'}`}
+            >
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${newPurchased ? 'bg-white border-white' : 'border-gray-600'}`}>
+                {newPurchased && <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M20.285 2l-11.285 11.567-5.286-5.011-3.714 3.716 9 8.728 15-15.285z"/></svg>}
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest">{newPurchased ? 'Customer Purchased (Closed)' : 'Log as Enquiry'}</span>
+            </button>
 
-          <button 
-            onClick={handleSaveLead}
-            className="w-full py-4 bg-blue-600 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all"
-          >
-            {editingLogId ? 'Update Interaction' : 'Register Customer'}
-          </button>
+            <button 
+              onClick={handleSaveLead}
+              className="w-full py-4 bg-blue-600 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all text-white"
+            >
+              {editingLogId ? 'Update Interaction' : 'Register Customer'}
+            </button>
+          </div>
         </div>
       )}
 
