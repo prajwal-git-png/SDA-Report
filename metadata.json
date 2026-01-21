@@ -1,6 +1,6 @@
 {
   "name": "SDA Pro Executive",
-  "description": "Premium Sales Tracking & Analytics for SDA Executives. iOS Pro Theme.",
+  "description": "Premium Installable Sales Tracking & Analytics for SDA Executives. iOS Pro Theme with Offline PWA support.",
   "requestFramePermissions": [
     "camera"
   ]

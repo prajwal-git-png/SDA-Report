@@ -1,5 +1,5 @@
 
-import { UserProfile, SaleEntry, PRODUCT_CATEGORIES } from '../types';
+import { UserProfile, SaleEntry, PRODUCT_CATEGORIES } from '../types.ts';
 
 export const reportService = {
   generatePerformanceReport: (profile: UserProfile, sales: SaleEntry[]) => {
@@ -17,7 +17,6 @@ export const reportService = {
     const mtdEntries = sales.filter(s => new Date(s.date).getTime() >= monthStart);
     const weeklyEntries = sales.filter(s => new Date(s.date).getTime() >= currentWeekStart.getTime());
 
-    // Separate Performance: My vs Others
     const myEntries = mtdEntries.filter(e => e.attendedBy === 'Me');
     const staffEntries = mtdEntries.filter(e => e.attendedBy === 'Other Staff');
     
@@ -26,7 +25,6 @@ export const reportService = {
     
     const weeklyAttendedCount = weeklyEntries.filter(e => e.attendedBy === 'Me' && e.interactionType !== 'Leave').length;
 
-    // Weekly Family Audit (Aggregate)
     const weeklyFamilyAudit = PRODUCT_CATEGORIES.map(cat => {
       const catWeekly = weeklyEntries.filter(e => e.category === cat);
       const salesCount = catWeekly.filter(e => e.interactionType === 'Sale').length;
@@ -126,7 +124,7 @@ export const reportService = {
           <table>
             <thead>
               <tr>
-                <th style="width: 80px;">Date</th>
+                <th style="width: 100px;">Date</th>
                 <th>Term</th>
                 <th>Category / Brand</th>
                 <th>Outcome</th>
@@ -136,7 +134,7 @@ export const reportService = {
             <tbody>
               ${mtdEntries.slice(0, 100).map(s => `
                 <tr>
-                  <td style="font-size: 11px; font-weight: 700; color: #8e8e93;">${new Date(s.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</td>
+                  <td style="font-size: 11px; font-weight: 700; color: #8e8e93;">${new Date(s.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
                   <td><span class="tag ${s.attendedBy === 'Me' ? 'tag-me' : 'tag-staff'}">${s.attendedBy === 'Me' ? 'SELF' : 'OTHER'}</span></td>
                   <td>
                     <div style="font-weight: 800;">${s.category}</div>
@@ -156,7 +154,7 @@ export const reportService = {
         </div>
 
         <footer>
-           SDA PRO SYSTEM AUDIT • ${new Date().toLocaleDateString()} • CONFIDENTIAL INTERNAL DOCUMENT
+           SDA PRO SYSTEM AUDIT • ${new Date().toLocaleDateString('en-GB')} • CONFIDENTIAL INTERNAL DOCUMENT
         </footer>
       </body>
       </html>

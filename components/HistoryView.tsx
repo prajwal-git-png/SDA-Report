@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { SaleEntry, UserProfile, BRANDS } from '../types';
+import { SaleEntry, UserProfile, BRANDS } from '../types.ts';
 
 interface HistoryViewProps {
   sales: SaleEntry[];
@@ -67,9 +67,9 @@ const HistoryView: React.FC<HistoryViewProps> = ({ sales, profile, onDelete }) =
           {dates.map(date => (
             <div key={date} className="space-y-5 relative z-10">
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-6 bg-[var(--bg)] border border-[var(--border)] rounded-full flex items-center justify-center z-20">
-                   <span className="text-[9px] font-black text-blue-500 uppercase">
-                     {new Date(date).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}
+                <div className="w-20 h-7 bg-[var(--bg)] border border-[var(--border)] rounded-full flex items-center justify-center z-20">
+                   <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">
+                     {new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })}
                    </span>
                 </div>
                 <div className="h-px flex-1 bg-[var(--border)]"></div>
@@ -103,7 +103,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ sales, profile, onDelete }) =
                       <div className="bg-gray-500/5 p-3 rounded-xl space-y-2">
                         {sale.reasonForPurchase && (
                           <div className="flex items-start space-x-2">
-                             <span className="text-[8px] font-black uppercase bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded">Pivot</span>
+                             <span className="text-[8px] font-black uppercase bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded">Remark</span>
                              <p className="text-[10px] font-semibold leading-snug">{sale.reasonForPurchase}</p>
                           </div>
                         )}
