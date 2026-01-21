@@ -39,11 +39,15 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
   
   const filteredLogs = useMemo(() => {
     return dayLogsRaw.filter(l => {
+      // Defensive checks for legacy data that might use 'product' and 'brand' instead of arrays
+      const products = l.products || ((l as any).product ? [(l as any).product] : []);
+      const brands = l.brands || ((l as any).brand ? [(l as any).brand] : []);
+
       const statusMatch = filterStatus === 'All' || 
                          (filterStatus === 'Sale' && l.hasPurchased) || 
                          (filterStatus === 'Enquiry' && !l.hasPurchased);
-      const brandMatch = filterBrand === 'All' || l.brands.includes(filterBrand);
-      const productMatch = filterProduct === 'All' || l.products.some(p => p === filterProduct);
+      const brandMatch = filterBrand === 'All' || brands.includes(filterBrand);
+      const productMatch = filterProduct === 'All' || products.some(p => p === filterProduct);
       return statusMatch && brandMatch && productMatch;
     });
   }, [dayLogsRaw, filterStatus, filterBrand, filterProduct]);
@@ -74,7 +78,6 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
       return;
     }
 
-    // Clean up brands: remove 'Other' if custom is provided, or keep custom
     let finalBrands = selectedBrands.filter(b => b !== 'Other');
     if (customBrand.trim()) {
       finalBrands.push(customBrand.trim());
@@ -118,11 +121,14 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
   const startEdit = (log: CounterLog) => {
     setEditingLogId(log.id);
     setNewCat(log.category);
-    setSelectedProducts(log.products);
+    // Support legacy data structure if arrays are missing
+    const products = log.products || ((log as any).product ? [(log as any).product] : []);
+    const brands = log.brands || ((log as any).brand ? [(log as any).brand] : []);
     
-    // Split brands into known and custom
-    const known = log.brands.filter(b => BRANDS.includes(b));
-    const custom = log.brands.filter(b => !BRANDS.includes(b));
+    setSelectedProducts(products);
+    
+    const known = brands.filter(b => BRANDS.includes(b));
+    const custom = brands.filter(b => !BRANDS.includes(b));
     
     setSelectedBrands(known);
     if (custom.length > 0) {
@@ -386,48 +392,54 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
         <h4 className="text-[10px] font-black uppercase tracking-widest opacity-30 px-2">
           {filteredLogs.length} Records for {new Date(selectedDate).toLocaleDateString('en-GB')}
         </h4>
-        {filteredLogs.map((l, i) => (
-          <div key={l.id} className="ios-card glass flex flex-col p-4 animate-in fade-in slide-in-from-right-4 border border-white/5">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center space-x-4">
-                <span className="text-[10px] font-black opacity-20 w-4">#{filteredLogs.length - i}</span>
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-                    {l.products.map(p => (
-                      <span key={p} className="text-[9px] font-black bg-white/5 px-2 py-0.5 rounded-full">{p}</span>
-                    ))}
+        {filteredLogs.map((l, i) => {
+          // Robust mapping for legacy data
+          const products = l.products || ((l as any).product ? [(l as any).product] : []);
+          const brands = l.brands || ((l as any).brand ? [(l as any).brand] : []);
+          
+          return (
+            <div key={l.id} className="ios-card glass flex flex-col p-4 animate-in fade-in slide-in-from-right-4 border border-white/5">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center space-x-4">
+                  <span className="text-[10px] font-black opacity-20 w-4">#{filteredLogs.length - i}</span>
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                      {products.map((p, idx) => (
+                        <span key={idx} className="text-[9px] font-black bg-white/5 px-2 py-0.5 rounded-full">{p}</span>
+                      ))}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1">
+                      {brands.map((b, idx) => (
+                        <span key={idx} className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${l.hasPurchased ? 'bg-green-500/10 text-green-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                          {b}
+                        </span>
+                      ))}
+                    </div>
+                    <p className={`text-[8px] font-black uppercase mt-2 ${l.hasPurchased ? 'text-green-500' : 'text-orange-500'}`}>
+                      {l.hasPurchased ? 'CONVERTED TO SALE' : 'POTENTIAL LEAD'} • {new Date(l.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-1">
-                    {l.brands.map(b => (
-                      <span key={b} className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${l.hasPurchased ? 'bg-green-500/10 text-green-500' : 'bg-blue-500/10 text-blue-500'}`}>
-                        {b}
-                      </span>
-                    ))}
-                  </div>
-                  <p className={`text-[8px] font-black uppercase mt-2 ${l.hasPurchased ? 'text-green-500' : 'text-orange-500'}`}>
-                    {l.hasPurchased ? 'CONVERTED TO SALE' : 'POTENTIAL LEAD'} • {new Date(l.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+                </div>
+                <div className="flex space-x-1">
+                  <button 
+                    onClick={() => startEdit(l)}
+                    className="text-blue-500/30 hover:text-blue-500 transition-colors p-1"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  </button>
+                  <button onClick={() => deleteLead(l.id)} className="text-red-500/20 active:text-red-500 transition-colors p-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
                 </div>
               </div>
-              <div className="flex space-x-1">
-                <button 
-                  onClick={() => startEdit(l)}
-                  className="text-blue-500/30 hover:text-blue-500 transition-colors p-1"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                </button>
-                <button onClick={() => deleteLead(l.id)} className="text-red-500/20 active:text-red-500 transition-colors p-1">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                </button>
-              </div>
+              {l.note && (
+                <div className="mt-3 pt-3 border-t border-white/5">
+                  <p className="text-[10px] text-gray-400 font-medium italic">"{l.note}"</p>
+                </div>
+              )}
             </div>
-            {l.note && (
-              <div className="mt-3 pt-3 border-t border-white/5">
-                <p className="text-[10px] text-gray-400 font-medium italic">"{l.note}"</p>
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
         {filteredLogs.length === 0 && (
           <div className="text-center py-20">
              <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
