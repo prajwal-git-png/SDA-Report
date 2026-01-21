@@ -13,13 +13,16 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, sales, onViewHistory }) 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [viewScope, setViewScope] = useState<'my' | 'others'>('my');
   const [showDayReportCard, setShowDayReportCard] = useState(false);
+  const [showWeeklyDetail, setShowWeeklyDetail] = useState(false);
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
   
-  // Weekly bounds
+  // Weekly bounds (Mon-Sun)
   const currentWeekStart = new Date(now);
-  currentWeekStart.setDate(now.getDate() - now.getDay());
+  const day = now.getDay();
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+  currentWeekStart.setDate(diff);
   currentWeekStart.setHours(0,0,0,0);
   
   const mtdEntries = sales.filter(s => new Date(s.date).getTime() >= monthStart);
@@ -33,7 +36,23 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, sales, onViewHistory }) 
   const mtdWalkins = mtdEnquiries.reduce((a, c) => a + (c.walkins || 0), 0);
 
   // Weekly Attendance (Customers attended throughout the week)
-  const weeklyAttendedCount = weeklyEntries.filter(e => e.attendedBy === 'Me' && e.interactionType !== 'Leave').length;
+  const weeklyAttendanceData = useMemo(() => {
+    const data = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(currentWeekStart);
+      d.setDate(currentWeekStart.getDate() + i);
+      const dateStr = d.toISOString().split('T')[0];
+      const dayEntries = weeklyEntries.filter(e => e.date === dateStr && e.attendedBy === 'Me' && e.interactionType !== 'Leave');
+      data.push({
+        date: dateStr,
+        day: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        count: dayEntries.length
+      });
+    }
+    return data;
+  }, [weeklyEntries, currentWeekStart]);
+
+  const weeklyAttendedTotal = weeklyAttendanceData.reduce((a, b) => a + b.count, 0);
 
   // Family-wise (Category) Weekly Report
   const weeklyFamilyReport = useMemo(() => {
@@ -90,76 +109,95 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, sales, onViewHistory }) 
         </button>
       </header>
 
-      {/* Scope Toggle */}
+      {/* Report Toggle - My vs Others */}
       <div className="flex p-1 bg-gray-500/10 rounded-2xl border border-white/5">
         <button 
           onClick={() => setViewScope('my')}
-          className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewScope === 'my' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500'}`}
+          className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewScope === 'my' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500'}`}
         >
           My Sales Report
         </button>
         <button 
           onClick={() => setViewScope('others')}
-          className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewScope === 'others' ? 'bg-orange-600 text-white shadow-lg' : 'text-gray-500'}`}
+          className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewScope === 'others' ? 'bg-orange-600 text-white shadow-lg' : 'text-gray-500'}`}
         >
           Others Sales Report
         </button>
       </div>
 
-      {/* Primary KPI Grid */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-2 gap-4">
         <div className={`ios-card border-none shadow-xl text-white ${viewScope === 'my' ? 'bg-gradient-to-br from-blue-600 to-indigo-700 shadow-blue-500/20' : 'bg-gradient-to-br from-orange-600 to-red-700 shadow-orange-500/20'}`}>
-           <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">MTD {viewScope === 'my' ? 'Revenue' : 'Staff Help'}</p>
+           <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">{viewScope === 'my' ? 'Personal' : 'Assisted'} Revenue</p>
            <p className="text-2xl font-black">₹{mtdRevenue.toLocaleString()}</p>
            <div className="mt-4 w-full bg-white/20 h-1 rounded-full">
               <div className="bg-white h-full" style={{ width: `${Math.min((mtdRevenue/profile.monthTarget)*100, 100)}%` }} />
            </div>
         </div>
         <div className="ios-card glass border-orange-500/20 shadow-lg">
-           <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-1 text-orange-500">Walk-ins Attended</p>
-           <p className="text-2xl font-black">{mtdWalkins}</p>
-           <p className="text-[9px] mt-2 opacity-50 uppercase font-black">Conversion Potential</p>
+           <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-1 text-orange-500">Customers Seen</p>
+           <p className="text-2xl font-black">{mtdWalkins + mtdSales.length}</p>
+           <p className="text-[9px] mt-2 opacity-50 uppercase font-black">Total Interactions</p>
         </div>
       </div>
 
-      {/* Weekly Attendance Counter */}
-      <div className="ios-card glass flex justify-between items-center py-4 px-6 border-blue-500/20">
-         <div>
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Weekly Attendance</p>
-            <p className="text-2xl font-black text-blue-500">{weeklyAttendedCount} <span className="text-xs font-medium text-gray-500 opacity-60 ml-1">Customers</span></p>
-         </div>
-         <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
-            <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-         </div>
+      {/* Weekly Attendance Analysis */}
+      <div 
+        onClick={() => setShowWeeklyDetail(true)}
+        className="ios-card glass !p-5 cursor-pointer hover:border-blue-500/30 transition-all active:scale-[0.98]"
+      >
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-1">Weekly Traffic Audit</p>
+            <h4 className="text-lg font-black">{weeklyAttendedTotal} Total Leads</h4>
+          </div>
+          <div className="text-right">
+             <p className="text-[9px] font-black opacity-30 uppercase tracking-widest">Efficiency</p>
+             <p className="text-xs font-black text-green-500">MTD {((mtdSales.length / (mtdSales.length + mtdWalkins || 1)) * 100).toFixed(0)}% CR</p>
+          </div>
+        </div>
+        
+        <div className="flex items-end justify-between h-12 gap-1 px-2">
+          {weeklyAttendanceData.map((d) => (
+            <div key={d.date} className="flex-1 flex flex-col items-center">
+              <div 
+                className={`w-full rounded-t-md transition-all duration-700 ${d.date === selectedDate ? 'bg-blue-500' : 'bg-blue-500/20'}`}
+                style={{ height: `${Math.max((d.count / (Math.max(...weeklyAttendanceData.map(x => x.count)) || 1)) * 100, 5)}%` }}
+              />
+              <span className="text-[8px] font-black uppercase mt-1 opacity-40">{d.day}</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-[8px] font-black uppercase tracking-widest opacity-20 mt-3 text-center">Tap to view full weekly breakdown</p>
       </div>
 
-      {/* Weekly Family Report */}
+      {/* Category Performance Breakdown */}
       <div className="ios-card glass">
         <div className="flex justify-between items-center mb-4 px-1">
-          <h3 className="text-[10px] font-black uppercase tracking-widest opacity-40">Weekly Category Report</h3>
-          <span className="text-[9px] font-black text-blue-500 uppercase">Sales Rate Audit</span>
+          <h3 className="text-[10px] font-black uppercase tracking-widest opacity-40">Family Report ({viewScope === 'my' ? 'My' : 'Others'})</h3>
+          <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest">Conversion Rate</span>
         </div>
-        <div className="space-y-5">
+        <div className="space-y-4">
            {weeklyFamilyReport.map(insight => (
              <div key={insight.category} className="space-y-2 group">
                 <div className="flex justify-between items-end">
                    <div>
-                      <p className="text-xs font-bold">{insight.category}</p>
+                      <p className="text-xs font-black">{insight.category}</p>
                       <p className="text-[9px] opacity-40 font-black uppercase mt-0.5">
-                        {insight.walkins} Walk-ins • {insight.salesCount} Sales
+                        {insight.walkins} Enq • {insight.salesCount} Sales
                       </p>
                    </div>
                    <div className="text-right">
-                      <p className="text-xs font-black text-green-500">{insight.salesRate.toFixed(0)}% Rate</p>
-                      <p className="text-[9px] font-bold opacity-40">₹{insight.rev.toLocaleString()}</p>
+                      <p className="text-xs font-black text-blue-500">{insight.salesRate.toFixed(0)}% Rate</p>
+                      <p className="text-[9px] font-bold opacity-30">₹{insight.rev.toLocaleString()}</p>
                    </div>
                 </div>
                 <div className="w-full bg-gray-500/10 h-1.5 rounded-full overflow-hidden flex">
-                   <div className="h-full bg-green-500 transition-all duration-1000" style={{ width: `${insight.salesRate}%` }} />
+                   <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${insight.salesRate}%` }} />
                 </div>
              </div>
            ))}
-           {weeklyFamilyReport.length === 0 && <p className="text-center py-6 text-xs opacity-30 italic">No category data for this week</p>}
+           {weeklyFamilyReport.length === 0 && <p className="text-center py-6 text-xs opacity-30 italic">No activity for this scope this week</p>}
         </div>
       </div>
 
@@ -183,19 +221,60 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, sales, onViewHistory }) 
         </div>
       </div>
 
-      {/* Day Report Card Trigger */}
+      {/* Day Review Trigger */}
       <div 
         onClick={() => setShowDayReportCard(true)}
-        className="ios-card glass border-[var(--accent)]/20 cursor-pointer active:scale-[0.98] transition-all bg-gradient-to-r from-[var(--accent)]/5 to-transparent"
+        className="ios-card glass border-[var(--accent)]/20 cursor-pointer active:scale-[0.98] transition-all bg-gradient-to-r from-[var(--accent)]/5 to-transparent flex justify-between items-center"
       >
-        <div className="flex justify-between items-center mb-2">
-           <h3 className="font-bold text-sm">Review: {new Date(selectedDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</h3>
+        <div>
+           <h3 className="font-bold text-sm">Log: {new Date(selectedDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</h3>
+           <p className="text-[9px] opacity-40 uppercase font-black tracking-widest mt-1">Detailed productivity card</p>
+        </div>
+        <div className="text-right">
            <span className="text-xs font-black text-blue-500">₹{selectedRevenue.toLocaleString()}</span>
         </div>
-        <p className="text-[9px] opacity-40 uppercase font-black tracking-widest">Tap for Daily Report Card</p>
       </div>
 
-      {/* Detailed Report Card Modal */}
+      {/* Weekly Detailed Audit Modal */}
+      {showWeeklyDetail && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-black/85 backdrop-blur-lg" onClick={() => setShowWeeklyDetail(false)}></div>
+          <div className="relative w-full max-w-sm bg-[var(--card-bg)] rounded-[32px] overflow-hidden shadow-2xl border border-white/5 flex flex-col max-h-[85vh]">
+            <div className="bg-gradient-to-br from-indigo-600 to-purple-800 p-8 text-white relative">
+               <button onClick={() => setShowWeeklyDetail(false)} className="absolute top-4 right-4 p-2 bg-black/20 rounded-full">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+               </button>
+               <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Weekly Lead Audit</p>
+               <h2 className="text-2xl font-black mt-1">Week Attendance</h2>
+               <div className="mt-6 flex justify-between items-end">
+                  <div>
+                    <p className="text-[9px] font-black opacity-60 uppercase">Total Attended</p>
+                    <p className="text-3xl font-black">{weeklyAttendedTotal}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[9px] font-black opacity-60 uppercase">Target Effort</p>
+                    <p className="text-xl font-black">{((weeklyAttendedTotal / 50) * 100).toFixed(0)}%</p>
+                  </div>
+               </div>
+            </div>
+            <div className="p-6 space-y-3 overflow-y-auto flex-1 scrollbar-hide">
+              {weeklyAttendanceData.map((d, i) => (
+                <div key={i} className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5">
+                   <div>
+                      <p className="text-xs font-black">{d.day}, {new Date(d.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</p>
+                      <p className="text-[9px] text-blue-500 font-bold uppercase tracking-widest mt-0.5">{d.count} Customers Handled</p>
+                   </div>
+                   <div className="h-8 w-1 bg-blue-500/20 rounded-full relative overflow-hidden">
+                      <div className="absolute bottom-0 w-full bg-blue-500" style={{ height: `${(d.count / (Math.max(...weeklyAttendanceData.map(x => x.count)) || 1)) * 100}%` }} />
+                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Day Report Modal */}
       {showDayReportCard && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-black/85 backdrop-blur-lg" onClick={() => setShowDayReportCard(false)}></div>
@@ -204,7 +283,7 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, sales, onViewHistory }) 
                <button onClick={() => setShowDayReportCard(false)} className="absolute top-4 right-4 p-2 bg-black/20 rounded-full">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                </button>
-               <p className="text-[10px] font-black uppercase tracking-widest opacity-60">{viewScope === 'my' ? 'My Performance Card' : 'Staff Assistance Card'}</p>
+               <p className="text-[10px] font-black uppercase tracking-widest opacity-60">{viewScope === 'my' ? 'My Term Audit' : 'Staff Assistance'}</p>
                <h2 className="text-2xl font-black mt-1">{new Date(selectedDate).toLocaleDateString(undefined, { day: 'numeric', month: 'long' })}</h2>
             </div>
             
@@ -221,13 +300,12 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, sales, onViewHistory }) 
                     </div>
                     <p className="text-xs font-black leading-tight">{e.category} | {e.productName}</p>
                     <div className="mt-2 pt-2 border-t border-white/5">
-                       <p className="text-[9px] font-black text-blue-500 uppercase">Reason / Feedback:</p>
+                       <p className="text-[9px] font-black text-blue-500 uppercase">Context:</p>
                        <p className="text-[10px] font-medium leading-relaxed opacity-80">{e.reasonForPurchase}</p>
-                       {e.customerFeedback && <p className="text-[10px] opacity-60 italic mt-1">"{e.customerFeedback}"</p>}
                     </div>
                  </div>
                ))}
-               {selectedEntries.length === 0 && <p className="text-center py-10 text-xs opacity-30 italic">No logs matched for this date</p>}
+               {selectedEntries.length === 0 && <p className="text-center py-10 text-xs opacity-30 italic">No activity matching filter on this date</p>}
             </div>
           </div>
         </div>
