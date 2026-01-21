@@ -46,15 +46,15 @@ export interface CounterLog {
   hasPurchased: boolean;
   timestamp: number;
   category: CounterCategory;
-  product: string;
-  brand: string;
+  products: string[];
+  brands: string[];
   note: string;
 }
 
 export type ReasonType = 'Price Issue' | 'Quality Issue' | 'Requirement Issue' | 'Previous Experience' | 'Brand Loyalty' | 'Feature Missing' | 'Better Warranty' | 'Demo Not Available' | 'Stock Issue' | 'Other';
 
 export const BRANDS = [
-  'Bajaj', 'Philips', 'Havells', 'Butterfly', 'Preeti', 'Panasonic', 'Wonderchef', 'Morphy Richards'
+  'Bajaj', 'Philips', 'Havells', 'Butterfly', 'Preeti', 'Panasonic', 'Wonderchef', 'Morphy Richards', 'Other'
 ];
 
 export const REASONS: ReasonType[] = [

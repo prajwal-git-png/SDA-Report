@@ -20,8 +20,9 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
 
   // Form State
   const [newCat, setNewCat] = useState<CounterCategory>('Kitchen Care');
-  const [newProd, setNewProd] = useState(KITCHEN_PRODUCTS[0]);
-  const [newBrand, setNewBrand] = useState(BRANDS[0]);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [customBrand, setCustomBrand] = useState('');
   const [newNote, setNewNote] = useState('');
   const [newPurchased, setNewPurchased] = useState(false);
 
@@ -41,8 +42,8 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
       const statusMatch = filterStatus === 'All' || 
                          (filterStatus === 'Sale' && l.hasPurchased) || 
                          (filterStatus === 'Enquiry' && !l.hasPurchased);
-      const brandMatch = filterBrand === 'All' || l.brand === filterBrand;
-      const productMatch = filterProduct === 'All' || l.product === filterProduct;
+      const brandMatch = filterBrand === 'All' || l.brands.includes(filterBrand);
+      const productMatch = filterProduct === 'All' || l.products.includes(filterProduct);
       return statusMatch && brandMatch && productMatch;
     });
   }, [dayLogsRaw, filterStatus, filterBrand, filterProduct]);
@@ -50,14 +51,36 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
   const dayTotal = dayLogsRaw.length;
   const daySales = dayLogsRaw.filter(l => l.hasPurchased).length;
 
+  const toggleProduct = (p: string) => {
+    setSelectedProducts(prev => prev.includes(p) ? prev.filter(item => item !== p) : [...prev, p]);
+  };
+
+  const toggleBrand = (b: string) => {
+    setSelectedBrands(prev => prev.includes(b) ? prev.filter(item => item !== b) : [...prev, b]);
+  };
+
   const handleSaveLead = () => {
+    if (selectedProducts.length === 0) {
+      alert("Please select at least one product.");
+      return;
+    }
+    if (selectedBrands.length === 0 && !customBrand) {
+      alert("Please select or enter a brand.");
+      return;
+    }
+
+    const finalBrands = [...selectedBrands];
+    if (customBrand && !finalBrands.includes(customBrand)) {
+      finalBrands.push(customBrand);
+    }
+
     if (editingLogId) {
       onUpdate(logs.map(l => l.id === editingLogId ? {
         ...l,
         hasPurchased: newPurchased,
         category: newCat,
-        product: newProd,
-        brand: newBrand,
+        products: selectedProducts,
+        brands: finalBrands,
         note: newNote
       } : l));
     } else {
@@ -67,8 +90,8 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
         hasPurchased: newPurchased,
         timestamp: Date.now(),
         category: newCat,
-        product: newProd,
-        brand: newBrand,
+        products: selectedProducts,
+        brands: finalBrands,
         note: newNote
       };
       onUpdate([newLog, ...logs]);
@@ -79,6 +102,9 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
   const resetForm = () => {
     setNewNote('');
     setNewPurchased(false);
+    setSelectedProducts([]);
+    setSelectedBrands([]);
+    setCustomBrand('');
     setShowAddForm(false);
     setEditingLogId(null);
   };
@@ -86,8 +112,17 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
   const startEdit = (log: CounterLog) => {
     setEditingLogId(log.id);
     setNewCat(log.category);
-    setNewProd(log.product);
-    setNewBrand(log.brand);
+    setSelectedProducts(log.products);
+    
+    // Split brands into known and custom
+    const known = log.brands.filter(b => BRANDS.includes(b));
+    const custom = log.brands.filter(b => !BRANDS.includes(b));
+    
+    setSelectedBrands(known);
+    if (custom.length > 0) {
+      setCustomBrand(custom[0]);
+    }
+    
     setNewNote(log.note);
     setNewPurchased(log.hasPurchased);
     setShowAddForm(true);
@@ -108,6 +143,13 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
     for (let i = 1; i <= daysInMonth; i++) days.push(new Date(currentYear, currentMonth, i).toISOString().split('T')[0]);
     return days;
   }, [currentMonth, currentYear]);
+
+  const currentCategoryProducts = useMemo(() => {
+    if (newCat === 'Kitchen Care') return KITCHEN_PRODUCTS;
+    if (newCat === 'Garment Care') return GARMENT_PRODUCTS;
+    if (newCat === 'Home Care') return HOME_PRODUCTS;
+    return ['Other'];
+  }, [newCat]);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700 relative pb-10">
@@ -181,7 +223,7 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
       {/* Filter Section */}
       <div className="flex flex-col space-y-3">
         <div className="flex items-center justify-between px-1">
-          <h4 className="text-[10px] font-black uppercase tracking-widest opacity-30">Filters</h4>
+          <h4 className="text-[10px] font-black uppercase tracking-widest opacity-30">Quick Filters</h4>
           {(filterStatus !== 'All' || filterBrand !== 'All' || filterProduct !== 'All') && (
             <button 
               onClick={() => { setFilterStatus('All'); setFilterBrand('All'); setFilterProduct('All'); }}
@@ -197,7 +239,7 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
             onChange={e => setFilterStatus(e.target.value as any)}
             className="bg-gray-500/10 text-[9px] font-black uppercase px-4 py-2.5 rounded-xl min-w-[100px] text-gray-400 outline-none"
           >
-            <option value="All">All Leads</option>
+            <option value="All">All Status</option>
             <option value="Enquiry">Enquiries</option>
             <option value="Sale">Closed Sales</option>
           </select>
@@ -229,60 +271,78 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
           <span className="text-lg font-black text-white uppercase tracking-widest">Add Walk-in</span>
         </button>
       ) : (
-        <div className="ios-card bg-white/5 p-6 space-y-5 animate-in slide-in-from-top-4 duration-300 border border-white/5">
+        <div className="ios-card bg-white/5 p-6 space-y-6 animate-in slide-in-from-top-4 duration-300 border border-white/5">
           <div className="flex justify-between items-center mb-2">
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-500">{editingLogId ? 'Edit Walk-in' : 'Log Details'}</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-500">{editingLogId ? 'Edit Entry' : 'New Customer Intent'}</h4>
             <button onClick={resetForm} className="text-[10px] font-black text-gray-500 uppercase">Cancel</button>
           </div>
           
-          <div className="grid grid-cols-2 gap-3">
-             <div className="space-y-1">
-               <label className="text-[8px] font-black uppercase opacity-40 ml-2">Main Category</label>
-               <select 
-                 value={newCat} 
-                 onChange={e => {
-                   const c = e.target.value as CounterCategory;
-                   setNewCat(c);
-                   setNewProd(c === 'Kitchen Care' ? KITCHEN_PRODUCTS[0] : c === 'Garment Care' ? GARMENT_PRODUCTS[0] : c === 'Home Care' ? HOME_PRODUCTS[0] : 'Other');
-                 }}
-                 className="w-full bg-black/40 rounded-xl px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-blue-600 outline-none"
-               >
-                 <option value="Garment Care">Garment Care</option>
-                 <option value="Kitchen Care">Kitchen Care</option>
-                 <option value="Home Care">Home Care</option>
-                 <option value="Others">Others</option>
-               </select>
-             </div>
-             <div className="space-y-1">
-               <label className="text-[8px] font-black uppercase opacity-40 ml-2">Product Interested</label>
-               <select 
-                 value={newProd} 
-                 onChange={e => setNewProd(e.target.value)}
-                 className="w-full bg-black/40 rounded-xl px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-blue-600 outline-none"
-               >
-                 {newCat === 'Kitchen Care' && KITCHEN_PRODUCTS.map(p => <option key={p} value={p}>{p}</option>)}
-                 {newCat === 'Garment Care' && GARMENT_PRODUCTS.map(p => <option key={p} value={p}>{p}</option>)}
-                 {newCat === 'Home Care' && HOME_PRODUCTS.map(p => <option key={p} value={p}>{p}</option>)}
-                 {newCat === 'Others' && <option value="Other">Other Product</option>}
-               </select>
+          {/* Main Category */}
+          <div className="space-y-2">
+             <label className="text-[8px] font-black uppercase opacity-40 ml-1">Core Department</label>
+             <div className="flex flex-wrap gap-2">
+               {(['Garment Care', 'Kitchen Care', 'Home Care', 'Others'] as CounterCategory[]).map(cat => (
+                 <button 
+                  key={cat}
+                  onClick={() => {
+                    setNewCat(cat);
+                    setSelectedProducts([]);
+                  }}
+                  className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${newCat === cat ? 'bg-blue-600 text-white shadow-lg' : 'bg-white/5 text-gray-500'}`}
+                 >
+                   {cat}
+                 </button>
+               ))}
              </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[8px] font-black uppercase opacity-40 ml-2">Select Brand</label>
-            <select 
-              value={newBrand}
-              onChange={e => setNewBrand(e.target.value)}
-              className="w-full bg-black/40 rounded-xl px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-blue-600 outline-none"
-            >
-              {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
-            </select>
+          {/* Multiple Products */}
+          <div className="space-y-2">
+             <label className="text-[8px] font-black uppercase opacity-40 ml-1">Products Wanted (Multiple)</label>
+             <div className="flex flex-wrap gap-2">
+               {currentCategoryProducts.map(p => (
+                 <button 
+                  key={p}
+                  onClick={() => toggleProduct(p)}
+                  className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${selectedProducts.includes(p) ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'bg-transparent border-white/5 text-gray-500'}`}
+                 >
+                   {p}
+                 </button>
+               ))}
+             </div>
+          </div>
+
+          {/* Multiple Brands */}
+          <div className="space-y-2">
+             <label className="text-[8px] font-black uppercase opacity-40 ml-1">Brands Interested (Multiple)</label>
+             <div className="flex flex-wrap gap-2">
+               {BRANDS.map(b => (
+                 <button 
+                  key={b}
+                  onClick={() => toggleBrand(b)}
+                  className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${selectedBrands.includes(b) ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'bg-transparent border-white/5 text-gray-500'}`}
+                 >
+                   {b}
+                 </button>
+               ))}
+             </div>
+             {(selectedBrands.includes('Other') || customBrand) && (
+               <div className="mt-3 animate-in fade-in zoom-in-95 duration-200">
+                 <input 
+                  type="text"
+                  placeholder="Enter manual brand name..."
+                  value={customBrand}
+                  onChange={e => setCustomBrand(e.target.value)}
+                  className="w-full bg-black/40 rounded-xl px-4 py-3 text-xs font-bold border border-blue-500/30 outline-none focus:border-blue-500 transition-all"
+                 />
+               </div>
+             )}
           </div>
 
           <div className="space-y-1">
             <label className="text-[8px] font-black uppercase opacity-40 ml-2">Quick Note / Requirement</label>
             <textarea 
-              placeholder="E.g. Wants high wattage, specifically red color..."
+              placeholder="E.g. Price conscious, looking for high warranty..."
               value={newNote}
               onChange={e => setNewNote(e.target.value)}
               className="w-full bg-black/40 rounded-xl px-4 py-3 text-xs font-medium h-20 resize-none outline-none focus:ring-2 focus:ring-blue-600"
@@ -296,36 +356,42 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${newPurchased ? 'bg-white border-white' : 'border-gray-600'}`}>
               {newPurchased && <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M20.285 2l-11.285 11.567-5.286-5.011-3.714 3.716 9 8.728 15-15.285z"/></svg>}
             </div>
-            <span className="text-[10px] font-black uppercase tracking-widest">{newPurchased ? 'Customer Purchased (Sold)' : 'Mark as Enquiry Only'}</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">{newPurchased ? 'Customer Purchased (Closed)' : 'Log as Enquiry'}</span>
           </button>
 
           <button 
             onClick={handleSaveLead}
             className="w-full py-4 bg-blue-600 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all"
           >
-            {editingLogId ? 'Update Walk-in' : 'Save Entry'}
+            {editingLogId ? 'Update Interaction' : 'Register Customer'}
           </button>
         </div>
       )}
 
       <div className="space-y-3">
         <h4 className="text-[10px] font-black uppercase tracking-widest opacity-30 px-2">
-          {filteredLogs.length} Records Found for {new Date(selectedDate).toLocaleDateString('en-GB')}
+          {filteredLogs.length} Records for {new Date(selectedDate).toLocaleDateString('en-GB')}
         </h4>
         {filteredLogs.map((l, i) => (
           <div key={l.id} className="ios-card glass flex flex-col p-4 animate-in fade-in slide-in-from-right-4 border border-white/5">
             <div className="flex items-start justify-between">
               <div className="flex items-center space-x-4">
                 <span className="text-[10px] font-black opacity-20 w-4">#{filteredLogs.length - i}</span>
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <p className="text-xs font-black">{l.product}</p>
-                    <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${l.hasPurchased ? 'bg-green-500/10 text-green-500' : 'bg-blue-500/10 text-blue-500'}`}>
-                      {l.brand}
-                    </span>
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                    {l.products.map(p => (
+                      <span key={p} className="text-[9px] font-black bg-white/5 px-2 py-0.5 rounded-full">{p}</span>
+                    ))}
                   </div>
-                  <p className={`text-[8px] font-black uppercase mt-1 ${l.hasPurchased ? 'text-green-500' : 'text-orange-500'}`}>
-                    {l.hasPurchased ? 'SALE COMPLETED' : 'ENQUIRY'} • {new Date(l.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <div className="flex flex-wrap items-center gap-1">
+                    {l.brands.map(b => (
+                      <span key={b} className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${l.hasPurchased ? 'bg-green-500/10 text-green-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                        {b}
+                      </span>
+                    ))}
+                  </div>
+                  <p className={`text-[8px] font-black uppercase mt-2 ${l.hasPurchased ? 'text-green-500' : 'text-orange-500'}`}>
+                    {l.hasPurchased ? 'CONVERTED TO SALE' : 'POTENTIAL LEAD'} • {new Date(l.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
               </div>
