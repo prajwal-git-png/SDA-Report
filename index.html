@@ -25,7 +25,7 @@
             --text-secondary: #8e8e93;
             --accent: #0a84ff;
             --accent-glow: rgba(10, 132, 255, 0.4);
-            --border: rgba(255, 255, 255, 0.1);
+            --border: transparent;
             --glass: rgba(28, 28, 30, 0.8);
             --input-bg: #2c2c2e;
         }
@@ -37,7 +37,7 @@
             --text-secondary: #3c3c43;
             --accent: #007aff;
             --accent-glow: rgba(0, 122, 255, 0.2);
-            --border: rgba(0, 0, 0, 0.08);
+            --border: transparent;
             --glass: rgba(255, 255, 255, 0.85);
             --input-bg: #e5e5ea;
         }
@@ -57,7 +57,7 @@
             background: var(--glass);
             backdrop-filter: blur(25px); 
             -webkit-backdrop-filter: blur(25px);
-            border: 0.5px solid var(--border);
+            border: none;
         }
 
         .shiny-text {
@@ -76,8 +76,8 @@
             background: var(--card-bg);
             border-radius: 24px;
             padding: 18px;
-            border: 0.5px solid var(--border);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border: none;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
             color: var(--text);
         }
@@ -96,7 +96,7 @@
             justify-content: space-around;
             padding: 12px;
             z-index: 1000;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         }
 
         .calendar-strip {
@@ -154,6 +154,8 @@
         input, select, textarea {
             color: var(--text) !important;
             background-color: transparent !important;
+            border: none !important;
+            outline: none !important;
         }
         
         input::placeholder, textarea::placeholder {

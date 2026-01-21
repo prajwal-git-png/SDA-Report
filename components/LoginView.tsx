@@ -49,7 +49,7 @@ const LoginView: React.FC<LoginProps> = ({ onComplete }) => {
           <input 
             type="text" 
             placeholder="Executive Name"
-            className="w-full bg-[#1c1c1e] border border-white/5 text-white rounded-2xl px-5 py-4 focus:ring-2 focus:ring-blue-600 outline-none"
+            className="w-full bg-[#1c1c1e] text-white rounded-2xl px-5 py-4 focus:ring-2 focus:ring-blue-600 outline-none border-none"
             value={formData.name}
             onChange={e => setFormData({...formData, name: e.target.value})}
             required
@@ -62,7 +62,7 @@ const LoginView: React.FC<LoginProps> = ({ onComplete }) => {
             <input 
               type="text" 
               placeholder="Store Name"
-              className="w-full bg-[#1c1c1e] border border-white/5 text-white rounded-2xl px-5 py-4 focus:ring-2 focus:ring-blue-600 outline-none"
+              className="w-full bg-[#1c1c1e] text-white rounded-2xl px-5 py-4 focus:ring-2 focus:ring-blue-600 outline-none border-none"
               value={formData.storeName}
               onChange={e => setFormData({...formData, storeName: e.target.value})}
               required
@@ -73,7 +73,7 @@ const LoginView: React.FC<LoginProps> = ({ onComplete }) => {
             <input 
               type="text" 
               placeholder="ID"
-              className="w-full bg-[#1c1c1e] border border-white/5 text-white rounded-2xl px-5 py-4 focus:ring-2 focus:ring-blue-600 outline-none"
+              className="w-full bg-[#1c1c1e] text-white rounded-2xl px-5 py-4 focus:ring-2 focus:ring-blue-600 outline-none border-none"
               value={formData.empId}
               onChange={e => setFormData({...formData, empId: e.target.value})}
               required
@@ -84,7 +84,7 @@ const LoginView: React.FC<LoginProps> = ({ onComplete }) => {
         <div className="space-y-1">
           <label className="text-[10px] font-bold text-gray-500 uppercase ml-4">Assigned Brand</label>
           <select 
-            className="w-full bg-[#1c1c1e] border border-white/5 text-white rounded-2xl px-5 py-4 focus:ring-2 focus:ring-blue-600 outline-none appearance-none"
+            className="w-full bg-[#1c1c1e] text-white rounded-2xl px-5 py-4 focus:ring-2 focus:ring-blue-600 outline-none appearance-none border-none"
             value={formData.brand}
             onChange={e => setFormData({...formData, brand: e.target.value})}
           >
@@ -101,10 +101,10 @@ const LoginView: React.FC<LoginProps> = ({ onComplete }) => {
                 key={cat}
                 type="button"
                 onClick={() => togglePortfolio(cat)}
-                className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${
+                className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${
                   formData.brandPortfolio.includes(cat)
-                    ? 'bg-blue-600 border-blue-400 text-white shadow-lg'
-                    : 'bg-[#1c1c1e] border-white/5 text-gray-500'
+                    ? 'bg-blue-600 text-white shadow-lg'
+                    : 'bg-[#1c1c1e] text-gray-500'
                 }`}
               >
                 {cat}
@@ -118,7 +118,7 @@ const LoginView: React.FC<LoginProps> = ({ onComplete }) => {
               <label className="text-[10px] font-bold text-blue-500 uppercase ml-4">Weekly Target (₹)</label>
               <input 
                 type="number" 
-                className="w-full bg-[#1c1c1e] border border-white/5 text-white rounded-2xl px-5 py-4 focus:ring-2 focus:ring-blue-600 outline-none"
+                className="w-full bg-[#1c1c1e] text-white rounded-2xl px-5 py-4 focus:ring-2 focus:ring-blue-600 outline-none border-none"
                 value={formData.weekTarget}
                 onChange={e => setFormData({...formData, weekTarget: Number(e.target.value)})}
               />
@@ -127,7 +127,7 @@ const LoginView: React.FC<LoginProps> = ({ onComplete }) => {
               <label className="text-[10px] font-bold text-green-500 uppercase ml-4">Monthly Target (₹)</label>
               <input 
                 type="number" 
-                className="w-full bg-[#1c1c1e] border border-white/5 text-white rounded-2xl px-5 py-4 focus:ring-2 focus:ring-blue-600 outline-none"
+                className="w-full bg-[#1c1c1e] text-white rounded-2xl px-5 py-4 focus:ring-2 focus:ring-blue-600 outline-none border-none"
                 value={formData.monthTarget}
                 onChange={e => setFormData({...formData, monthTarget: Number(e.target.value)})}
               />
@@ -136,7 +136,7 @@ const LoginView: React.FC<LoginProps> = ({ onComplete }) => {
 
         <button 
           type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-500 py-5 rounded-3xl font-bold text-lg transition-all active:scale-95 shadow-xl shadow-blue-600/30"
+          className="w-full bg-blue-600 hover:bg-blue-500 py-5 rounded-3xl font-bold text-lg transition-all active:scale-95 shadow-xl shadow-blue-600/30 border-none"
         >
           Initialize Workspace
         </button>
