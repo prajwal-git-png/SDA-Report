@@ -1,30 +1,50 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile, SaleEntry, BRANDS, REASONS, InteractionType, LeaveType, PRODUCT_CATEGORIES, AttendedBy } from '../types';
 
 interface EntryFormProps {
   profile: UserProfile;
+  initialEntry?: SaleEntry;
   onSave: (entry: SaleEntry) => void;
+  onCancel?: () => void;
 }
 
-const EntryForm: React.FC<EntryFormProps> = ({ profile, onSave }) => {
-  const [type, setType] = useState<InteractionType>('Sale');
-  const [attendedBy, setAttendedBy] = useState<AttendedBy>('Me');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [category, setCategory] = useState(PRODUCT_CATEGORIES[0]);
-  const [productName, setProductName] = useState('');
-  const [brand, setBrand] = useState(profile.brand);
-  const [quantity, setQuantity] = useState(1);
-  const [price, setPrice] = useState<number>(0);
-  const [reason, setReason] = useState(REASONS[0]);
-  const [feedback, setFeedback] = useState('');
-  const [walkins, setWalkins] = useState<number>(1);
-  const [leaveType, setLeaveType] = useState<LeaveType>('Week Off');
+const EntryForm: React.FC<EntryFormProps> = ({ profile, initialEntry, onSave, onCancel }) => {
+  const [type, setType] = useState<InteractionType>(initialEntry?.interactionType || 'Sale');
+  const [attendedBy, setAttendedBy] = useState<AttendedBy>(initialEntry?.attendedBy || 'Me');
+  const [date, setDate] = useState(initialEntry?.date || new Date().toISOString().split('T')[0]);
+  const [category, setCategory] = useState(initialEntry?.category || PRODUCT_CATEGORIES[0]);
+  const [productName, setProductName] = useState(initialEntry?.productName || '');
+  const [brand, setBrand] = useState(initialEntry?.brandName || profile.brand);
+  const [quantity, setQuantity] = useState(initialEntry?.quantity || 1);
+  const [price, setPrice] = useState<number>(initialEntry?.price || 0);
+  const [reason, setReason] = useState(initialEntry?.reasonForPurchase || REASONS[0]);
+  const [feedback, setFeedback] = useState(initialEntry?.customerFeedback || '');
+  const [walkins, setWalkins] = useState<number>(initialEntry?.walkins || 1);
+  const [leaveType, setLeaveType] = useState<LeaveType>(initialEntry?.leaveType || 'Week Off');
+
+  // If initialEntry changes, reset state
+  useEffect(() => {
+    if (initialEntry) {
+      setType(initialEntry.interactionType);
+      setAttendedBy(initialEntry.attendedBy);
+      setDate(initialEntry.date);
+      setCategory(initialEntry.category);
+      setProductName(initialEntry.productName);
+      setBrand(initialEntry.brandName);
+      setQuantity(initialEntry.quantity);
+      setPrice(initialEntry.price);
+      setReason(initialEntry.reasonForPurchase as any);
+      setFeedback(initialEntry.customerFeedback);
+      setWalkins(initialEntry.walkins || 1);
+      setLeaveType(initialEntry.leaveType || 'Week Off');
+    }
+  }, [initialEntry]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const entry: SaleEntry = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: initialEntry?.id || Math.random().toString(36).substr(2, 9),
       date,
       interactionType: type,
       category: type === 'Leave' ? 'Internal' : category,
@@ -45,7 +65,7 @@ const EntryForm: React.FC<EntryFormProps> = ({ profile, onSave }) => {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold shiny-text">New Log</h2>
+        <h2 className="text-3xl font-bold shiny-text">{initialEntry ? 'Edit Log' : 'New Log'}</h2>
         <div className="flex bg-[var(--card-bg)] p-1 rounded-2xl shadow-inner">
           {(['Sale', 'Enquiry', 'Leave'] as InteractionType[]).map((t) => (
             <button
@@ -200,15 +220,26 @@ const EntryForm: React.FC<EntryFormProps> = ({ profile, onSave }) => {
           />
         </div>
 
-        <button 
-          type="submit"
-          className={`w-full py-5 rounded-3xl font-black text-lg shadow-xl active:scale-95 transition-all text-white ${
-            type === 'Sale' ? 'bg-[var(--accent)] shadow-[var(--accent-glow)]' : 
-            type === 'Enquiry' ? 'bg-orange-600 shadow-orange-600/20' : 'bg-red-600 shadow-red-600/20'
-          }`}
-        >
-          {type === 'Sale' ? 'Register Sale' : type === 'Enquiry' ? 'Log Enquiry' : 'Confirm Leave'}
-        </button>
+        <div className="flex space-x-3">
+          {initialEntry && onCancel && (
+            <button 
+              type="button"
+              onClick={onCancel}
+              className="flex-1 py-5 rounded-3xl font-black text-lg bg-gray-500/10 text-gray-400 active:scale-95 transition-all"
+            >
+              Cancel
+            </button>
+          )}
+          <button 
+            type="submit"
+            className={`flex-[2] py-5 rounded-3xl font-black text-lg shadow-xl active:scale-95 transition-all text-white ${
+              type === 'Sale' ? 'bg-[var(--accent)] shadow-[var(--accent-glow)]' : 
+              type === 'Enquiry' ? 'bg-orange-600 shadow-orange-600/20' : 'bg-red-600 shadow-red-600/20'
+            }`}
+          >
+            {initialEntry ? 'Update Entry' : (type === 'Sale' ? 'Register Sale' : type === 'Enquiry' ? 'Log Enquiry' : 'Confirm Leave')}
+          </button>
+        </div>
       </form>
     </div>
   );

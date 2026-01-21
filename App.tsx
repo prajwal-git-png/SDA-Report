@@ -14,6 +14,7 @@ const App: React.FC = () => {
   const [sales, setSales] = useState<SaleEntry[]>([]);
   const [counterLogs, setCounterLogs] = useState<CounterLog[]>([]);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'counter' | 'add' | 'history' | 'profile'>('dashboard');
+  const [editingSale, setEditingSale] = useState<SaleEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
@@ -43,10 +44,16 @@ const App: React.FC = () => {
     storage.save({ profile: newProfile, sales, counterLogs });
   };
 
-  const handleAddSale = (entry: SaleEntry) => {
-    const newSales = [entry, ...sales];
+  const handleSaveSale = (entry: SaleEntry) => {
+    let newSales;
+    if (sales.find(s => s.id === entry.id)) {
+      newSales = sales.map(s => s.id === entry.id ? entry : s);
+    } else {
+      newSales = [entry, ...sales];
+    }
     setSales(newSales);
     storage.save({ profile, sales: newSales, counterLogs });
+    setEditingSale(null);
     setActiveTab('dashboard');
   };
 
@@ -59,6 +66,11 @@ const App: React.FC = () => {
   const handleUpdateCounter = (logs: CounterLog[]) => {
     setCounterLogs(logs);
     storage.save({ profile, sales, counterLogs: logs });
+  };
+
+  const startEditSale = (entry: SaleEntry) => {
+    setEditingSale(entry);
+    setActiveTab('add');
   };
 
   if (loading) {
@@ -93,7 +105,9 @@ const App: React.FC = () => {
         {activeTab === 'add' && (
           <EntryForm 
             profile={profile} 
-            onSave={handleAddSale} 
+            initialEntry={editingSale || undefined}
+            onSave={handleSaveSale} 
+            onCancel={() => { setEditingSale(null); setActiveTab('dashboard'); }}
           />
         )}
         {activeTab === 'history' && (
@@ -101,6 +115,7 @@ const App: React.FC = () => {
             sales={sales} 
             profile={profile} 
             onDelete={handleDeleteSale}
+            onEdit={startEditSale}
           />
         )}
         {activeTab === 'profile' && (
@@ -126,7 +141,7 @@ const App: React.FC = () => {
       <nav className="dock glass">
         <TabItem icon="dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
         <TabItem icon="counter" active={activeTab === 'counter'} onClick={() => setActiveTab('counter')} />
-        <TabItem icon="add" active={activeTab === 'add'} onClick={() => setActiveTab('add')} />
+        <TabItem icon="add" active={activeTab === 'add'} onClick={() => { setEditingSale(null); setActiveTab('add'); }} />
         <TabItem icon="history" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
         <TabItem icon="profile" active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
       </nav>

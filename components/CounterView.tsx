@@ -15,6 +15,7 @@ const ALL_PRODUCTS = [...KITCHEN_PRODUCTS, ...GARMENT_PRODUCTS, ...HOME_PRODUCTS
 const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Form State
@@ -49,21 +50,47 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
   const dayTotal = dayLogsRaw.length;
   const daySales = dayLogsRaw.filter(l => l.hasPurchased).length;
 
-  const handleAddLead = () => {
-    const newLog: CounterLog = {
-      id: Math.random().toString(36).substr(2, 9),
-      date: selectedDate,
-      hasPurchased: newPurchased,
-      timestamp: Date.now(),
-      category: newCat,
-      product: newProd,
-      brand: newBrand,
-      note: newNote
-    };
-    onUpdate([newLog, ...logs]);
+  const handleSaveLead = () => {
+    if (editingLogId) {
+      onUpdate(logs.map(l => l.id === editingLogId ? {
+        ...l,
+        hasPurchased: newPurchased,
+        category: newCat,
+        product: newProd,
+        brand: newBrand,
+        note: newNote
+      } : l));
+    } else {
+      const newLog: CounterLog = {
+        id: Math.random().toString(36).substr(2, 9),
+        date: selectedDate,
+        hasPurchased: newPurchased,
+        timestamp: Date.now(),
+        category: newCat,
+        product: newProd,
+        brand: newBrand,
+        note: newNote
+      };
+      onUpdate([newLog, ...logs]);
+    }
+    resetForm();
+  };
+
+  const resetForm = () => {
     setNewNote('');
     setNewPurchased(false);
     setShowAddForm(false);
+    setEditingLogId(null);
+  };
+
+  const startEdit = (log: CounterLog) => {
+    setEditingLogId(log.id);
+    setNewCat(log.category);
+    setNewProd(log.product);
+    setNewBrand(log.brand);
+    setNewNote(log.note);
+    setNewPurchased(log.hasPurchased);
+    setShowAddForm(true);
   };
 
   const deleteLead = (id: string) => {
@@ -195,7 +222,7 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
 
       {!showAddForm ? (
         <button 
-          onClick={() => setShowAddForm(true)}
+          onClick={() => { resetForm(); setShowAddForm(true); }}
           className="w-full py-6 bg-blue-600 rounded-[32px] shadow-2xl shadow-blue-600/30 active:scale-95 transition-all flex items-center justify-center space-x-3"
         >
           <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
@@ -204,8 +231,8 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
       ) : (
         <div className="ios-card bg-white/5 p-6 space-y-5 animate-in slide-in-from-top-4 duration-300 border border-white/5">
           <div className="flex justify-between items-center mb-2">
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-500">Log Details</h4>
-            <button onClick={() => setShowAddForm(false)} className="text-[10px] font-black text-gray-500 uppercase">Cancel</button>
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-500">{editingLogId ? 'Edit Walk-in' : 'Log Details'}</h4>
+            <button onClick={resetForm} className="text-[10px] font-black text-gray-500 uppercase">Cancel</button>
           </div>
           
           <div className="grid grid-cols-2 gap-3">
@@ -273,10 +300,10 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
           </button>
 
           <button 
-            onClick={handleAddLead}
+            onClick={handleSaveLead}
             className="w-full py-4 bg-blue-600 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl active:scale-95 transition-all"
           >
-            Save Entry
+            {editingLogId ? 'Update Walk-in' : 'Save Entry'}
           </button>
         </div>
       )}
@@ -302,9 +329,17 @@ const CounterView: React.FC<CounterViewProps> = ({ logs, onUpdate }) => {
                   </p>
                 </div>
               </div>
-              <button onClick={() => deleteLead(l.id)} className="text-red-500/20 active:text-red-500 transition-colors p-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-              </button>
+              <div className="flex space-x-1">
+                <button 
+                  onClick={() => startEdit(l)}
+                  className="text-blue-500/30 hover:text-blue-500 transition-colors p-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                </button>
+                <button onClick={() => deleteLead(l.id)} className="text-red-500/20 active:text-red-500 transition-colors p-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+              </div>
             </div>
             {l.note && (
               <div className="mt-3 pt-3 border-t border-white/5">
