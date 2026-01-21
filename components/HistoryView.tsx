@@ -31,11 +31,11 @@ const HistoryView: React.FC<HistoryViewProps> = ({ sales, profile, onDelete }) =
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       <div className="flex flex-col space-y-4">
          <h2 className="text-3xl font-bold shiny-text px-1">Timeline</h2>
-         <div className="flex space-x-2 overflow-x-auto pb-2 px-1">
+         <div className="flex space-x-2 overflow-x-auto pb-2 px-1 scrollbar-hide">
             <select 
               value={filterBrand}
               onChange={e => setFilterBrand(e.target.value)}
-              className="bg-[var(--card-bg)] border border-[var(--border)] text-[10px] font-black uppercase px-4 py-2 rounded-xl focus:outline-none"
+              className="bg-[var(--card-bg)] border border-[var(--border)] text-[10px] font-black uppercase px-4 py-2 rounded-xl focus:outline-none min-w-[120px]"
             >
               <option value="All">Brands: All</option>
               {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
@@ -43,7 +43,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ sales, profile, onDelete }) =
             <select 
               value={filterType}
               onChange={e => setFilterType(e.target.value)}
-              className="bg-[var(--card-bg)] border border-[var(--border)] text-[10px] font-black uppercase px-4 py-2 rounded-xl focus:outline-none"
+              className="bg-[var(--card-bg)] border border-[var(--border)] text-[10px] font-black uppercase px-4 py-2 rounded-xl focus:outline-none min-w-[120px]"
             >
               <option value="All">Type: All</option>
               <option value="Sale">Sales</option>
@@ -62,17 +62,17 @@ const HistoryView: React.FC<HistoryViewProps> = ({ sales, profile, onDelete }) =
         </div>
       ) : (
         <div className="space-y-10 relative">
-          <div className="absolute left-6 top-4 bottom-4 w-px bg-[var(--border)] z-0"></div>
+          <div className="absolute left-6 top-4 bottom-4 w-px bg-[var(--border)] z-0 opacity-20"></div>
           
           {dates.map(date => (
             <div key={date} className="space-y-5 relative z-10">
               <div className="flex items-center space-x-3">
-                <div className="w-20 h-7 bg-[var(--bg)] border border-[var(--border)] rounded-full flex items-center justify-center z-20">
+                <div className="w-24 h-7 bg-[var(--bg)] border border-[var(--border)] rounded-full flex items-center justify-center z-20">
                    <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">
                      {new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })}
                    </span>
                 </div>
-                <div className="h-px flex-1 bg-[var(--border)]"></div>
+                <div className="h-px flex-1 bg-[var(--border)] opacity-20"></div>
               </div>
               
               <div className="space-y-4 pl-8">
@@ -82,7 +82,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ sales, profile, onDelete }) =
                       <div className="flex-1">
                         <div className="flex items-center space-x-2">
                            <span className={`w-2 h-2 rounded-full ${
-                             sale.interactionType === 'Sale' ? 'bg-green-500' : 
+                             sale.interactionType === 'Sale' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 
                              sale.interactionType === 'Enquiry' ? 'bg-orange-500' : 'bg-red-500'
                            }`}></span>
                            <h4 className="font-bold text-sm tracking-tight">{sale.productName}</h4>
@@ -93,7 +93,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ sales, profile, onDelete }) =
                       </div>
                       <button 
                         onClick={() => onDelete(sale.id)}
-                        className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="text-gray-400 hover:text-red-500 p-1 opacity-40 group-hover:opacity-100 transition-opacity"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>

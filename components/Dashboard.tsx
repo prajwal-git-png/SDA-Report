@@ -70,9 +70,10 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, sales, onViewHistory }) 
     const dates = [];
     const d = new Date();
     const day = d.getDay();
-    const diff = d.getDate() - day;
-    const weekStart = new Date(d.setDate(diff)).setHours(0,0,0,0);
-    const start = new Date(weekStart);
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const start = new Date(d.setDate(diff));
+    start.setHours(0,0,0,0);
+    
     for (let i = 0; i < 7; i++) {
       const dayDate = new Date(start);
       dayDate.setDate(start.getDate() + i);
@@ -88,18 +89,18 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, sales, onViewHistory }) 
   const selectedEntries = sales.filter(s => s.date === selectedDate);
   const selectedRevenue = selectedEntries.filter(e => e.interactionType === 'Sale' && e.attendedBy === 'Me').reduce((a, c) => a + (c.price * c.quantity), 0);
 
-  // Helper for formatted date display
+  // Helper for formatted date display DD/MM/YYYY
   const formatDateStr = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   const copyWhatsAppReport = () => {
     const dayTarget = Math.round(profile.weekTarget / 7);
-    const dayAchievement = selectedRevenue;
+    const dayAchievement = selectedRevenue || 0;
     const weekTarget = profile.weekTarget;
     const weekAchievement = weeklyEntries
       .filter(e => e.interactionType === 'Sale' && e.attendedBy === 'Me')
-      .reduce((a, c) => a + (c.price * c.quantity), 0);
+      .reduce((a, c) => a + (c.price * c.quantity), 0) || 0;
 
     const reportText = `Date: *${formatDateStr(selectedDate)}*\nName: *${profile.name.toUpperCase()}*\nBrand: *${profile.brand.toUpperCase()}*\nDay Target: ${dayTarget}\nDay achievement: ${dayAchievement}\nWeek Target : ${weekTarget}\nWeek achievement : ${weekAchievement}\nEol target :00\nEol Achive :00`;
 
@@ -196,8 +197,10 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, sales, onViewHistory }) 
                 className={`w-full rounded-t-md transition-all duration-700 ${d.date === selectedDate ? 'bg-blue-500' : 'bg-blue-500/20'}`}
                 style={{ height: `${Math.max((d.count / (Math.max(...weeklyAttendanceData.map(x => x.count)) || 1)) * 100, 5)}%` }}
               />
-              <span className="text-[7px] font-black uppercase mt-1 opacity-40 leading-none">{d.day}</span>
-              <span className="text-[6px] font-bold opacity-20">{d.formattedDate}</span>
+              <div className="flex flex-col items-center mt-1">
+                <span className="text-[7px] font-black uppercase opacity-40 leading-none">{d.day}</span>
+                <span className="text-[6px] font-bold opacity-20">{d.formattedDate}</span>
+              </div>
             </div>
           ))}
         </div>
@@ -233,19 +236,42 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, sales, onViewHistory }) 
         </div>
       </div>
 
-      <div className="ios-card glass !p-4">
-        <div className="calendar-strip">
+      {/* Small Calendar View */}
+      <div className="ios-card glass !p-3">
+        <div className="flex items-center justify-between mb-2 px-1">
+          <p className="text-[9px] font-black uppercase tracking-widest opacity-40">Weekly View</p>
+          <div className="flex space-x-2">
+            <div className="flex items-center space-x-1"><div className="w-1.5 h-1.5 rounded-full bg-green-500" /> <span className="text-[7px] uppercase font-bold opacity-40 text-green-500">Sale</span></div>
+            <div className="flex items-center space-x-1"><div className="w-1.5 h-1.5 rounded-full bg-red-500" /> <span className="text-[7px] uppercase font-bold opacity-40 text-red-500">Leave</span></div>
+          </div>
+        </div>
+        <div className="calendar-strip pb-1">
           {calendarDates.map(d => {
-            const hasSale = sales.some(s => s.date === d.date && s.interactionType === 'Sale');
+            const daySales = sales.filter(s => s.date === d.date);
+            const hasSale = daySales.some(s => s.interactionType === 'Sale' && s.attendedBy === 'Me');
+            const isLeave = daySales.some(s => s.interactionType === 'Leave');
+            
+            let statusStyles = 'bg-[#0a0a0a] border-white/5'; // Default: Black (Zero Sales)
+            let textColor = 'text-gray-500';
+
+            if (hasSale) {
+              statusStyles = 'bg-green-900/20 border-green-500/30 shadow-[0_0_10px_rgba(34,197,94,0.05)]';
+              textColor = 'text-green-400';
+            } else if (isLeave) {
+              statusStyles = 'bg-red-900/20 border-red-500/30';
+              textColor = 'text-red-400';
+            }
+
             return (
               <div 
                 key={d.date} 
                 onClick={() => setSelectedDate(d.date)}
-                className={`calendar-day ${selectedDate === d.date ? 'active' : 'glass'}`}
+                className={`min-w-[45px] h-[60px] rounded-xl flex flex-col items-center justify-center border transition-all duration-300 ${statusStyles} ${selectedDate === d.date ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-black scale-105 z-10' : ''}`}
               >
-                <span className={`text-[9px] font-bold uppercase ${selectedDate === d.date ? 'text-white' : 'text-gray-500'}`}>{d.day}</span>
-                <span className="text-lg font-bold">{d.num}</span>
-                {hasSale && <div className={`absolute bottom-2 w-1 h-1 rounded-full ${selectedDate === d.date ? 'bg-white' : 'bg-green-500'}`} />}
+                <span className={`text-[8px] font-black uppercase ${selectedDate === d.date ? 'text-white' : textColor}`}>{d.day}</span>
+                <span className={`text-sm font-black mt-0.5 ${selectedDate === d.date ? 'text-white' : (hasSale ? 'text-green-500' : isLeave ? 'text-red-500' : 'text-gray-200')}`}>{d.num}</span>
+                {hasSale && <div className={`absolute bottom-1 w-1 h-1 rounded-full ${selectedDate === d.date ? 'bg-white' : 'bg-green-500'}`} />}
+                {isLeave && !hasSale && <div className={`absolute bottom-1 w-1 h-1 rounded-full ${selectedDate === d.date ? 'bg-white' : 'bg-red-500'}`} />}
               </div>
             );
           })}
@@ -254,7 +280,7 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, sales, onViewHistory }) 
 
       <div 
         onClick={() => setShowDayReportCard(true)}
-        className="ios-card glass border-[var(--accent)]/20 cursor-pointer active:scale-[0.98] transition-all bg-gradient-to-r from-[var(--accent)]/5 to-transparent flex justify-between items-center"
+        className="ios-card glass border-[var(--accent)]/20 cursor-pointer active:scale-[0.98] transition-all bg-gradient-to-r from-[var(--accent)]/5 to-transparent flex justify-between items-center shadow-[0_10px_30px_rgba(10,132,255,0.05)]"
       >
         <div>
            <h3 className="font-bold text-sm">Log: {formatDateStr(selectedDate)}</h3>
@@ -265,11 +291,11 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, sales, onViewHistory }) 
         </div>
       </div>
 
-      {/* Redesigned Weekly Detailed Modal */}
+      {/* Redesigned Weekly Detailed Modal - Black Card Aesthetic */}
       {showWeeklyDetail && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-300">
           <div className="absolute inset-0 bg-black/95 backdrop-blur-xl" onClick={() => setShowWeeklyDetail(false)}></div>
-          <div className="relative w-full max-w-sm bg-[#050505] rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(10,132,255,0.25)] border border-white/10 flex flex-col max-h-[85vh]">
+          <div className="relative w-full max-w-sm bg-[#050505] rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(10,132,255,0.2)] border border-white/10 flex flex-col max-h-[85vh]">
             <div className="bg-gradient-to-br from-[#111] to-black p-8 border-b border-white/5 relative">
                <button onClick={() => setShowWeeklyDetail(false)} className="absolute top-4 right-4 p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -287,7 +313,7 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, sales, onViewHistory }) 
                   </div>
                </div>
             </div>
-            <div className="p-6 space-y-3 overflow-y-auto flex-1 scrollbar-hide">
+            <div className="p-6 space-y-3 overflow-y-auto flex-1 scrollbar-hide bg-black/50">
               {weeklyAttendanceData.map((d, i) => (
                 <div key={i} className="flex justify-between items-center p-5 bg-white/[0.03] rounded-xl border border-white/5 hover:bg-white/[0.06] transition-all">
                    <div>
@@ -307,27 +333,28 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, sales, onViewHistory }) 
         </div>
       )}
 
-      {/* Redesigned Day Report Modal */}
+      {/* Redesigned Day Report Modal - Black Card Aesthetic */}
       {showDayReportCard && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-300">
           <div className="absolute inset-0 bg-black/95 backdrop-blur-xl" onClick={() => setShowDayReportCard(false)}></div>
-          <div className="relative w-full max-w-sm bg-[#050505] rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(255,149,0,0.15)] border border-white/10 flex flex-col max-h-[85vh]">
+          <div className="relative w-full max-w-sm bg-[#050505] rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(255,149,0,0.15)] border border-white/10 flex flex-col max-h-[85vh]">
             <div className={`p-8 text-white relative border-b border-white/5 ${viewScope === 'my' ? 'bg-gradient-to-br from-blue-900/40 to-black' : 'bg-gradient-to-br from-orange-900/40 to-black'}`}>
                <button onClick={() => setShowDayReportCard(false)} className="absolute top-4 right-4 p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                </button>
                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400">{viewScope === 'my' ? 'Self Audit' : 'Staff Assistance'}</p>
                <h2 className="text-2xl font-black mt-2 shiny-text">{new Date(selectedDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</h2>
+               
                <button 
                   onClick={copyWhatsAppReport}
-                  className="mt-6 w-full py-4 bg-green-600 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center justify-center space-x-2 active:scale-95 transition-all"
+                  className="mt-6 w-full py-4 bg-green-600 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-[0_10px_30px_rgba(34,197,94,0.3)] flex items-center justify-center space-x-2 active:scale-95 transition-all border border-green-500/20"
                >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
                   <span>Copy WhatsApp Report</span>
                </button>
             </div>
             
-            <div className="p-6 space-y-4 overflow-y-auto flex-1 scrollbar-hide">
+            <div className="p-6 space-y-4 overflow-y-auto flex-1 scrollbar-hide bg-black/50">
                {selectedEntries.filter(e => viewScope === 'my' ? e.attendedBy === 'Me' : e.attendedBy === 'Other Staff').map(e => (
                  <div key={e.id} className="p-5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all">
                     <div className="flex justify-between items-start mb-3">
@@ -342,7 +369,12 @@ const Dashboard: React.FC<DashboardProps> = ({ profile, sales, onViewHistory }) 
                     </div>
                  </div>
                ))}
-               {selectedEntries.length === 0 && <p className="text-center py-16 text-xs opacity-20 italic">No activity logs for this filter.</p>}
+               {selectedEntries.length === 0 && (
+                 <div className="flex flex-col items-center justify-center py-20 text-slate-500 opacity-20">
+                    <svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <p className="text-sm font-black italic uppercase">No logs for this filter.</p>
+                 </div>
+               )}
             </div>
           </div>
         </div>
