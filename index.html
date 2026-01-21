@@ -142,7 +142,6 @@
             border-color: var(--accent) transparent transparent transparent;
         }
 
-        /* Input theme overrides - Ensuring high visibility in all themes */
         input, select, textarea {
             color: var(--text) !important;
             background-color: transparent !important;
@@ -153,7 +152,6 @@
             opacity: 0.7;
         }
 
-        /* Smooth tab switching */
         .tab-content {
             animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -163,7 +161,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Hide scrollbars */
         ::-webkit-scrollbar { display: none; }
         * { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -180,5 +177,7 @@
 </head>
 <body>
     <div id="root"></div>
+    <!-- Explicitly load the application entry point -->
+    <script type="module" src="index.tsx"></script>
 </body>
 </html>

@@ -1,12 +1,12 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { UserProfile, SaleEntry, BRANDS, REASONS } from './types';
-import { storage } from './services/storage';
-import LoginView from './components/LoginView';
-import Dashboard from './components/Dashboard';
-import EntryForm from './components/EntryForm';
-import ProfileView from './components/ProfileView';
-import HistoryView from './components/HistoryView';
+import React, { useState, useEffect } from 'react';
+import { UserProfile, SaleEntry } from './types.ts';
+import { storage } from './services/storage.ts';
+import LoginView from './components/LoginView.tsx';
+import Dashboard from './components/Dashboard.tsx';
+import EntryForm from './components/EntryForm.tsx';
+import ProfileView from './components/ProfileView.tsx';
+import HistoryView from './components/HistoryView.tsx';
 
 const App: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -16,20 +16,23 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   useEffect(() => {
-    const data = storage.get();
-    setProfile(data.profile);
-    setSales(data.sales);
-    
-    // Theme initialization
-    const savedTheme = localStorage.getItem('SDA_THEME') as 'dark' | 'light';
-    if (savedTheme) {
-      setTheme(savedTheme);
-      document.body.setAttribute('data-theme', savedTheme);
-    } else {
-      document.body.setAttribute('data-theme', 'dark');
+    try {
+      const data = storage.get();
+      setProfile(data.profile);
+      setSales(data.sales);
+      
+      const savedTheme = localStorage.getItem('SDA_THEME') as 'dark' | 'light';
+      if (savedTheme) {
+        setTheme(savedTheme);
+        document.body.setAttribute('data-theme', savedTheme);
+      } else {
+        document.body.setAttribute('data-theme', 'dark');
+      }
+    } catch (err) {
+      console.error("Initialization error:", err);
+    } finally {
+      setTimeout(() => setLoading(false), 800);
     }
-
-    setTimeout(() => setLoading(false), 1200);
   }, []);
 
   const toggleTheme = () => {
@@ -107,7 +110,6 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Modern Dock Navigation */}
       <nav className="dock glass">
         <TabItem icon="dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
         <TabItem icon="add" active={activeTab === 'add'} onClick={() => setActiveTab('add')} />

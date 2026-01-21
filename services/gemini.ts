@@ -1,12 +1,21 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 
-// Always initialize GoogleGenAI with process.env.API_KEY directly
-const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Defensively get the API Key from environment
+const getApiKey = () => {
+  try {
+    // Check if process is defined (Node/Bundler environment)
+    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+      return process.env.API_KEY;
+    }
+  } catch (e) {}
+  return "";
+};
+
+const getAI = () => new GoogleGenAI({ apiKey: getApiKey() });
 
 export const geminiService = {
-  // Chat with streaming
-  async *chatStream(prompt: string, history: { role: string; parts: { text: string }[] }[]) {
+  async *chatStream(prompt: string, history: any[]) {
     const ai = getAI();
     const chat = ai.chats.create({
       model: 'gemini-3-flash-preview',
@@ -15,15 +24,12 @@ export const geminiService = {
       }
     });
     
-    // Note: In real app we might pass history here if the API supported it in the constructor 
-    // but we'll stick to simple stream for this demo.
     const result = await chat.sendMessageStream({ message: prompt });
     for await (const chunk of result) {
       yield (chunk as GenerateContentResponse).text;
     }
   },
 
-  // Image generation
   async generateImage(prompt: string) {
     const ai = getAI();
     const response = await ai.models.generateContent({
@@ -35,7 +41,6 @@ export const geminiService = {
     });
 
     for (const part of response.candidates?.[0]?.content?.parts || []) {
-      // Correctly iterate through parts to find the image data
       if (part.inlineData) {
         return `data:image/png;base64,${part.inlineData.data}`;
       }
@@ -43,7 +48,6 @@ export const geminiService = {
     throw new Error("No image data received");
   },
 
-  // Search Grounding
   async searchGrounding(query: string) {
     const ai = getAI();
     const response = await ai.models.generateContent({
@@ -54,7 +58,6 @@ export const geminiService = {
       }
     });
 
-    // Access the text property directly (not a method)
     const text = response.text || '';
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     const sources = chunks
@@ -68,7 +71,6 @@ export const geminiService = {
   }
 };
 
-// Utils for audio encoding/decoding as required by Live API
 export const audioUtils = {
   encode(bytes: Uint8Array) {
     let binary = '';
