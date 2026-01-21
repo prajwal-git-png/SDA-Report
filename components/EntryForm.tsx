@@ -46,7 +46,7 @@ const EntryForm: React.FC<EntryFormProps> = ({ profile, onSave }) => {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold shiny-text">New Log</h2>
-        <div className="flex bg-[var(--card-bg)] p-1 rounded-2xl border border-[var(--border)]">
+        <div className="flex bg-[var(--card-bg)] p-1 rounded-2xl shadow-inner">
           {(['Sale', 'Enquiry', 'Leave'] as InteractionType[]).map((t) => (
             <button
               key={t}
@@ -64,7 +64,7 @@ const EntryForm: React.FC<EntryFormProps> = ({ profile, onSave }) => {
       
       <form onSubmit={handleSubmit} className="space-y-4">
         {type !== 'Leave' && (
-          <div className="ios-card">
+          <div className="ios-card shadow-lg">
             <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-widest">Attended By</label>
             <div className="grid grid-cols-2 gap-2">
               {(['Me', 'Other Staff'] as AttendedBy[]).map(att => (
@@ -72,10 +72,10 @@ const EntryForm: React.FC<EntryFormProps> = ({ profile, onSave }) => {
                   key={att}
                   type="button"
                   onClick={() => setAttendedBy(att)}
-                  className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+                  className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                     attendedBy === att 
-                      ? 'bg-blue-600/10 border-blue-500 text-blue-500 shadow-sm font-black' 
-                      : 'bg-transparent border-[var(--border)] text-gray-500 font-bold'
+                      ? 'bg-blue-600/10 text-blue-500 shadow-sm font-black' 
+                      : 'bg-transparent text-gray-500 font-bold'
                   }`}
                 >
                   {att === 'Me' ? 'Myself (Term)' : 'Other Staff'}
@@ -85,7 +85,7 @@ const EntryForm: React.FC<EntryFormProps> = ({ profile, onSave }) => {
           </div>
         )}
 
-        <div className="ios-card">
+        <div className="ios-card shadow-lg">
           <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-widest">Activity Date</label>
           <input 
             type="date" 
@@ -97,29 +97,29 @@ const EntryForm: React.FC<EntryFormProps> = ({ profile, onSave }) => {
 
         {type !== 'Leave' && (
           <>
-            <div className="ios-card">
+            <div className="ios-card shadow-lg">
               <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-widest">Family / Category</label>
               <select 
                 value={category}
                 onChange={e => setCategory(e.target.value)}
                 className="w-full bg-transparent border-none focus:ring-0 text-lg font-medium appearance-none"
               >
-                {PRODUCT_CATEGORIES.map(cat => <option key={cat} value={cat} className="bg-[var(--card-bg)]">{cat}</option>)}
+                {PRODUCT_CATEGORIES.map(cat => <option key={cat} value={cat} className="bg-[var(--card-bg)] text-white">{cat}</option>)}
               </select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="ios-card">
+              <div className="ios-card shadow-lg">
                 <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-widest">Select Brand</label>
                 <select 
                   value={brand}
                   onChange={e => setBrand(e.target.value)}
                   className="w-full bg-transparent border-none focus:ring-0 text-sm font-bold appearance-none"
                 >
-                  {BRANDS.map(b => <option key={b} value={b} className="bg-[var(--card-bg)]">{b}</option>)}
+                  {BRANDS.map(b => <option key={b} value={b} className="bg-[var(--card-bg)] text-white">{b}</option>)}
                 </select>
               </div>
-              <div className="ios-card">
+              <div className="ios-card shadow-lg">
                 <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-widest">
                   {type === 'Sale' ? 'Sales Qty' : 'Enquiry Count'}
                 </label>
@@ -133,7 +133,7 @@ const EntryForm: React.FC<EntryFormProps> = ({ profile, onSave }) => {
               </div>
             </div>
 
-            <div className="ios-card">
+            <div className="ios-card shadow-lg">
               <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-widest">Product / Model Name</label>
               <input 
                 type="text" 
@@ -148,7 +148,7 @@ const EntryForm: React.FC<EntryFormProps> = ({ profile, onSave }) => {
         )}
 
         {type === 'Sale' && (
-          <div className="ios-card">
+          <div className="ios-card shadow-lg">
             <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-widest">Sale Value (₹)</label>
             <input 
               type="number" 
@@ -162,35 +162,35 @@ const EntryForm: React.FC<EntryFormProps> = ({ profile, onSave }) => {
         )}
 
         {type === 'Leave' && (
-          <div className="ios-card">
+          <div className="ios-card shadow-lg">
             <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-widest">Leave Reason</label>
             <select 
               value={leaveType}
               onChange={e => setLeaveType(e.target.value as LeaveType)}
               className="w-full bg-transparent border-none focus:ring-0 text-lg font-medium appearance-none"
             >
-              <option value="Week Off" className="bg-[var(--card-bg)]">Week Off</option>
-              <option value="Sick Leave" className="bg-[var(--card-bg)]">Sick Leave</option>
+              <option value="Week Off" className="bg-[var(--card-bg)] text-white">Week Off</option>
+              <option value="Sick Leave" className="bg-[var(--card-bg)] text-white">Sick Leave</option>
             </select>
           </div>
         )}
 
         {type !== 'Leave' && (
-          <div className="ios-card">
+          <div className="ios-card shadow-lg">
             <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-widest">
               {brand.toLowerCase() !== profile.brand.toLowerCase() ? 'Why Competitor Brand?' : 'Key Pivot Point'}
             </label>
             <select 
               value={reason}
               onChange={e => setReason(e.target.value as any)}
-              className="w-full bg-transparent border-none focus:ring-0 text-sm font-bold text-blue-500"
+              className="w-full bg-transparent border-none focus:ring-0 text-sm font-bold text-blue-500 appearance-none"
             >
-              {REASONS.map(r => <option key={r} value={r} className="bg-[var(--card-bg)]">{r}</option>)}
+              {REASONS.map(r => <option key={r} value={r} className="bg-[var(--card-bg)] text-white">{r}</option>)}
             </select>
           </div>
         )}
 
-        <div className="ios-card">
+        <div className="ios-card shadow-lg">
           <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2 tracking-widest">Audit Feedback / Remarks</label>
           <textarea 
             placeholder={type === 'Leave' ? 'Note for leave...' : (brand.toLowerCase() !== profile.brand.toLowerCase() ? 'Detail why your brand missed this sale...' : 'Customer reaction or specific requirement...')}

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { SaleEntry, UserProfile, BRANDS } from '../types.ts';
 
 interface HistoryViewProps {
@@ -11,11 +11,14 @@ interface HistoryViewProps {
 const HistoryView: React.FC<HistoryViewProps> = ({ sales, profile, onDelete }) => {
   const [filterBrand, setFilterBrand] = useState('All');
   const [filterType, setFilterType] = useState('All');
+  const [jumpDate, setJumpDate] = useState('');
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   const filteredSales = sales.filter(s => {
     const brandMatch = filterBrand === 'All' || s.brandName === filterBrand;
     const typeMatch = filterType === 'All' || s.interactionType === filterType;
-    return brandMatch && typeMatch;
+    const dateMatch = !jumpDate || s.date === jumpDate;
+    return brandMatch && typeMatch && dateMatch;
   });
 
   const groupedByDate = filteredSales.reduce((groups: any, sale) => {
@@ -27,15 +30,43 @@ const HistoryView: React.FC<HistoryViewProps> = ({ sales, profile, onDelete }) =
 
   const dates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
 
+  const resetFilters = () => {
+    setFilterBrand('All');
+    setFilterType('All');
+    setJumpDate('');
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       <div className="flex flex-col space-y-4">
-         <h2 className="text-3xl font-bold shiny-text px-1">Timeline</h2>
+         <div className="flex justify-between items-end px-1">
+            <div>
+              <h2 className="text-3xl font-bold shiny-text">Timeline</h2>
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Review logged activity</p>
+            </div>
+            {jumpDate && (
+              <button onClick={resetFilters} className="text-[10px] font-black text-red-500 uppercase tracking-widest">Clear Date</button>
+            )}
+         </div>
          <div className="flex space-x-2 overflow-x-auto pb-2 px-1 scrollbar-hide">
+            <button 
+              onClick={() => dateInputRef.current?.showPicker()}
+              className={`bg-[var(--card-bg)] text-[10px] font-black uppercase px-4 py-3 rounded-xl min-w-[120px] transition-all flex items-center justify-center space-x-2 ${jumpDate ? 'text-blue-500 ring-1 ring-blue-500' : 'text-gray-400'}`}
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span>{jumpDate ? new Date(jumpDate).toLocaleDateString('en-GB') : 'Jump to Date'}</span>
+              <input 
+                ref={dateInputRef} 
+                type="date" 
+                value={jumpDate} 
+                onChange={e => setJumpDate(e.target.value)} 
+                className="absolute opacity-0 pointer-events-none" 
+              />
+            </button>
             <select 
               value={filterBrand}
               onChange={e => setFilterBrand(e.target.value)}
-              className="bg-[var(--card-bg)] border border-[var(--border)] text-[10px] font-black uppercase px-4 py-2 rounded-xl focus:outline-none min-w-[120px]"
+              className="bg-[var(--card-bg)] text-[10px] font-black uppercase px-4 py-3 rounded-xl focus:outline-none min-w-[120px] text-gray-400"
             >
               <option value="All">Brands: All</option>
               {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
@@ -43,7 +74,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ sales, profile, onDelete }) =
             <select 
               value={filterType}
               onChange={e => setFilterType(e.target.value)}
-              className="bg-[var(--card-bg)] border border-[var(--border)] text-[10px] font-black uppercase px-4 py-2 rounded-xl focus:outline-none min-w-[120px]"
+              className="bg-[var(--card-bg)] text-[10px] font-black uppercase px-4 py-3 rounded-xl focus:outline-none min-w-[120px] text-gray-400"
             >
               <option value="All">Type: All</option>
               <option value="Sale">Sales</option>
@@ -58,26 +89,26 @@ const HistoryView: React.FC<HistoryViewProps> = ({ sales, profile, onDelete }) =
            <div className="w-16 h-16 bg-gray-500/5 rounded-full flex items-center justify-center mx-auto mb-4">
              <svg className="w-8 h-8 text-gray-500/30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
            </div>
-           <p className="text-sm text-gray-500 font-medium italic">No activity matches your filters.</p>
+           <p className="text-sm text-gray-500 font-medium italic px-10">No logs found {jumpDate ? `for ${new Date(jumpDate).toLocaleDateString()}` : 'with these filters'}.</p>
         </div>
       ) : (
         <div className="space-y-10 relative">
-          <div className="absolute left-6 top-4 bottom-4 w-px bg-[var(--border)] z-0 opacity-20"></div>
+          <div className="absolute left-6 top-4 bottom-4 w-px bg-white/5 z-0"></div>
           
           {dates.map(date => (
             <div key={date} className="space-y-5 relative z-10">
               <div className="flex items-center space-x-3">
-                <div className="w-24 h-7 bg-[var(--bg)] border border-[var(--border)] rounded-full flex items-center justify-center z-20">
+                <div className="w-24 h-7 bg-black rounded-full flex items-center justify-center z-20 border border-white/10 shadow-sm">
                    <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">
                      {new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })}
                    </span>
                 </div>
-                <div className="h-px flex-1 bg-[var(--border)] opacity-20"></div>
+                <div className="h-px flex-1 bg-white/5"></div>
               </div>
               
               <div className="space-y-4 pl-8">
                 {groupedByDate[date].map((sale: SaleEntry) => (
-                  <div key={sale.id} className="ios-card flex flex-col space-y-3 group border border-transparent hover:border-[var(--accent)]/20 transition-all duration-300">
+                  <div key={sale.id} className="ios-card flex flex-col space-y-3 group transition-all duration-300 active:scale-[0.98]">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center space-x-2">
@@ -93,7 +124,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ sales, profile, onDelete }) =
                       </div>
                       <button 
                         onClick={() => onDelete(sale.id)}
-                        className="text-gray-400 hover:text-red-500 p-1 opacity-40 group-hover:opacity-100 transition-opacity"
+                        className="text-gray-400 hover:text-red-500 p-1 opacity-20 group-hover:opacity-100 transition-opacity"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>

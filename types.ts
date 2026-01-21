@@ -4,7 +4,7 @@ export interface UserProfile {
   storeName: string;
   empId: string;
   brand: string;
-  brandPortfolio: string[]; // Categories assigned to this specific brand
+  brandPortfolio: string[];
   department: string;
   photo?: string;
   weekTarget: number;
@@ -23,7 +23,7 @@ export const PRODUCT_CATEGORIES = [
 
 export interface SaleEntry {
   id: string;
-  date: string; // ISO String
+  date: string;
   interactionType: InteractionType;
   productName: string;
   category: string;
@@ -34,8 +34,21 @@ export interface SaleEntry {
   customerFeedback: string;
   isOwnBrand: boolean;
   attendedBy: AttendedBy;
-  walkins?: number; // Specific walk-ins count for the category in this interaction
+  walkins?: number;
   leaveType?: LeaveType;
+}
+
+export type CounterCategory = 'Garment Care' | 'Kitchen Care' | 'Home Care' | 'Others';
+
+export interface CounterLog {
+  id: string;
+  date: string;
+  hasPurchased: boolean;
+  timestamp: number;
+  category: CounterCategory;
+  product: string;
+  brand: string;
+  note: string;
 }
 
 export type ReasonType = 'Price Issue' | 'Quality Issue' | 'Requirement Issue' | 'Previous Experience' | 'Brand Loyalty' | 'Feature Missing' | 'Better Warranty' | 'Demo Not Available' | 'Stock Issue' | 'Other';

@@ -1,17 +1,18 @@
 
-import { UserProfile, SaleEntry } from '../types';
+import { UserProfile, SaleEntry, CounterLog } from '../types';
 
-const STORAGE_KEY = 'SDA_PRO_DATA';
+const STORAGE_KEY = 'SDA_PRO_DATA_V2';
 
 interface AppData {
   profile: UserProfile | null;
   sales: SaleEntry[];
+  counterLogs: CounterLog[];
 }
 
 export const storage = {
   get: (): AppData => {
     const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : { profile: null, sales: [] };
+    return data ? JSON.parse(data) : { profile: null, sales: [], counterLogs: [] };
   },
   
   save: (data: AppData) => {
@@ -31,7 +32,7 @@ export const storage = {
   importData: (jsonStr: string) => {
     try {
       const data = JSON.parse(jsonStr);
-      if (data.profile || data.sales) {
+      if (data.profile || data.sales || data.counterLogs) {
         storage.save(data);
         return true;
       }
