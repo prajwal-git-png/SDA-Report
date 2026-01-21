@@ -1,0 +1,67 @@
+
+export interface UserProfile {
+  name: string;
+  storeName: string;
+  empId: string;
+  brand: string;
+  brandPortfolio: string[]; // Categories assigned to this specific brand
+  department: string;
+  photo?: string;
+  weekTarget: number;
+  monthTarget: number;
+}
+
+export type InteractionType = 'Sale' | 'Enquiry' | 'Leave';
+export type LeaveType = 'Week Off' | 'Sick Leave' | 'None';
+export type AttendedBy = 'Me' | 'Other Staff';
+
+export const PRODUCT_CATEGORIES = [
+  'Mixer Grinder', 'Air Fryer', 'OTG', 'Geyser', 'Personal Care', 
+  'Chimney', 'Toaster', 'Iron Box', 'Vacuum Cleaner', 'Dyson', 
+  'Kettles', 'Rice Cooker', 'Induction', 'Blender', 'Others'
+];
+
+export interface SaleEntry {
+  id: string;
+  date: string; // ISO String
+  interactionType: InteractionType;
+  productName: string;
+  category: string;
+  brandName: string;
+  quantity: number;
+  price: number;
+  reasonForPurchase: string;
+  customerFeedback: string;
+  isOwnBrand: boolean;
+  attendedBy: AttendedBy;
+  walkins?: number; // Specific walk-ins count for the category in this interaction
+  leaveType?: LeaveType;
+}
+
+export type ReasonType = 'Price Issue' | 'Quality Issue' | 'Requirement Issue' | 'Previous Experience' | 'Brand Loyalty' | 'Feature Missing' | 'Better Warranty' | 'Demo Not Available' | 'Stock Issue' | 'Other';
+
+export const BRANDS = [
+  'Bajaj', 'Philips', 'Havells', 'Butterfly', 'Preeti', 'Panasonic', 'Wonderchef', 'Morphy Richards'
+];
+
+export const REASONS: ReasonType[] = [
+  'Price Issue', 'Quality Issue', 'Requirement Issue', 'Previous Experience', 'Brand Loyalty', 'Feature Missing', 'Better Warranty', 'Demo Not Available', 'Stock Issue', 'Other'
+];
+
+export interface Message {
+  id: string;
+  role: 'user' | 'model';
+  text: string;
+  timestamp: number;
+}
+
+export interface GeneratedImage {
+  id: string;
+  url: string;
+  prompt: string;
+}
+
+export interface SearchResult {
+  title: string;
+  uri: string;
+}

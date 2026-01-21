@@ -1,0 +1,184 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SDA Pro Executive</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2225%22 fill=%22%230a84ff%22/><path d=%22M30 70 L50 30 L70 70%22 fill=%22none%22 stroke=%22white%22 stroke-width=%2210%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/><circle cx=%2250%22 cy=%2250%22 r=%2210%22 fill=%22white%22/></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #000000;
+            --card-bg: #1c1c1e;
+            --text: #ffffff;
+            --text-secondary: #8e8e93;
+            --accent: #0a84ff;
+            --accent-glow: rgba(10, 132, 255, 0.4);
+            --border: rgba(255, 255, 255, 0.1);
+            --glass: rgba(28, 28, 30, 0.8);
+            --input-bg: #2c2c2e;
+        }
+
+        [data-theme='light'] {
+            --bg: #f2f2f7;
+            --card-bg: #ffffff;
+            --text: #000000;
+            --text-secondary: #3c3c43;
+            --accent: #007aff;
+            --accent-glow: rgba(0, 122, 255, 0.2);
+            --border: rgba(0, 0, 0, 0.08);
+            --glass: rgba(255, 255, 255, 0.85);
+            --input-bg: #e5e5ea;
+        }
+
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+            background-color: var(--bg); 
+            color: var(--text);
+            transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        .glass { 
+            background: var(--glass);
+            backdrop-filter: blur(25px); 
+            -webkit-backdrop-filter: blur(25px);
+            border: 0.5px solid var(--border);
+        }
+
+        .shiny-text {
+            background: linear-gradient(120deg, var(--text) 0%, var(--text-secondary) 25%, var(--text) 50%, var(--text-secondary) 75%, var(--text) 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shine 4s linear infinite;
+        }
+
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+
+        .ios-card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 18px;
+            border: 0.5px solid var(--border);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            color: var(--text);
+        }
+
+        .ios-card:active { transform: scale(0.98); }
+
+        .dock {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 400px;
+            border-radius: 32px;
+            display: flex;
+            justify-content: space-around;
+            padding: 12px;
+            z-index: 1000;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .calendar-strip {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            padding: 10px 0;
+            gap: 12px;
+        }
+
+        .calendar-day {
+            min-width: 50px;
+            height: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 18px;
+            scroll-snap-align: start;
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .calendar-day.active {
+            background: var(--accent);
+            color: white !important;
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+
+        .calendar-day.active span {
+            color: white !important;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+
+        .grid-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        .loader-ring div {
+            border-color: var(--accent) transparent transparent transparent;
+        }
+
+        /* Input theme overrides - Ensuring high visibility in all themes */
+        input, select, textarea {
+            color: var(--text) !important;
+            background-color: transparent !important;
+        }
+        
+        input::placeholder, textarea::placeholder {
+            color: var(--text-secondary) !important;
+            opacity: 0.7;
+        }
+
+        /* Smooth tab switching */
+        .tab-content {
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Hide scrollbars */
+        ::-webkit-scrollbar { display: none; }
+        * { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.38.0"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>

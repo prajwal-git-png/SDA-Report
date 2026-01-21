@@ -1,0 +1,7 @@
+{
+  "name": "SDA Pro Executive",
+  "description": "Premium Sales Tracking & Analytics for SDA Executives. iOS Pro Theme.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

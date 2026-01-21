@@ -1,0 +1,239 @@
+
+import React, { useState, useMemo } from 'react';
+import { UserProfile, SaleEntry, PRODUCT_CATEGORIES } from '../types';
+import { reportService } from '../services/report';
+
+interface DashboardProps {
+  profile: UserProfile;
+  sales: SaleEntry[];
+  onViewHistory: () => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ profile, sales, onViewHistory }) => {
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [viewScope, setViewScope] = useState<'my' | 'others'>('my');
+  const [showDayReportCard, setShowDayReportCard] = useState(false);
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  
+  // Weekly bounds
+  const currentWeekStart = new Date(now);
+  currentWeekStart.setDate(now.getDate() - now.getDay());
+  currentWeekStart.setHours(0,0,0,0);
+  
+  const mtdEntries = sales.filter(s => new Date(s.date).getTime() >= monthStart);
+  const weeklyEntries = sales.filter(s => new Date(s.date).getTime() >= currentWeekStart.getTime());
+
+  // Metrics filtering
+  const filteredEntries = mtdEntries.filter(e => viewScope === 'my' ? e.attendedBy === 'Me' : e.attendedBy === 'Other Staff');
+  const mtdSales = filteredEntries.filter(e => e.interactionType === 'Sale');
+  const mtdEnquiries = filteredEntries.filter(e => e.interactionType === 'Enquiry');
+  const mtdRevenue = mtdSales.reduce((a, c) => a + (c.price * c.quantity), 0);
+  const mtdWalkins = mtdEnquiries.reduce((a, c) => a + (c.walkins || 0), 0);
+
+  // Weekly Attendance (Customers attended throughout the week)
+  const weeklyAttendedCount = weeklyEntries.filter(e => e.attendedBy === 'Me' && e.interactionType !== 'Leave').length;
+
+  // Family-wise (Category) Weekly Report
+  const weeklyFamilyReport = useMemo(() => {
+    return PRODUCT_CATEGORIES.map(cat => {
+      const catWeekly = weeklyEntries.filter(e => e.category === cat && (viewScope === 'my' ? e.attendedBy === 'Me' : e.attendedBy === 'Other Staff'));
+      const salesCount = catWeekly.filter(e => e.interactionType === 'Sale').length;
+      const walkins = catWeekly.filter(e => e.interactionType === 'Enquiry').reduce((a, c) => a + (c.walkins || 0), 0);
+      const rev = catWeekly.filter(e => e.interactionType === 'Sale').reduce((a, c) => a + (c.price * c.quantity), 0);
+      const totalPotential = salesCount + walkins;
+      const salesRate = totalPotential > 0 ? (salesCount / totalPotential) * 100 : 0;
+      return { category: cat, walkins, salesCount, salesRate, rev };
+    }).filter(f => f.walkins > 0 || f.salesCount > 0).sort((a, b) => b.rev - a.rev);
+  }, [weeklyEntries, viewScope]);
+
+  const calendarDates = useMemo(() => {
+    const dates = [];
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day;
+    const weekStart = new Date(d.setDate(diff)).setHours(0,0,0,0);
+    const start = new Date(weekStart);
+    for (let i = 0; i < 7; i++) {
+      const dayDate = new Date(start);
+      dayDate.setDate(start.getDate() + i);
+      dates.push({
+        date: dayDate.toISOString().split('T')[0],
+        day: dayDate.toLocaleDateString('en-US', { weekday: 'short' }),
+        num: dayDate.getDate()
+      });
+    }
+    return dates;
+  }, []);
+
+  const selectedEntries = sales.filter(s => s.date === selectedDate);
+  const selectedRevenue = selectedEntries.filter(e => e.interactionType === 'Sale').reduce((a, c) => a + (c.price * c.quantity), 0);
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700 relative">
+      <header className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 border border-white/20 overflow-hidden shadow-lg flex items-center justify-center">
+            {profile.photo ? <img src={profile.photo} className="w-full h-full object-cover" /> : <span className="font-bold text-white text-xl">{profile.name[0]}</span>}
+          </div>
+          <div>
+            <h1 className="text-xl font-black shiny-text leading-tight">{profile.name}</h1>
+            <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">{profile.storeName}</p>
+          </div>
+        </div>
+        <button 
+          onClick={() => reportService.generatePerformanceReport(profile, sales)}
+          className="w-10 h-10 rounded-xl glass flex items-center justify-center text-[var(--accent)] active:scale-90 transition-all shadow-sm"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+        </button>
+      </header>
+
+      {/* Scope Toggle */}
+      <div className="flex p-1 bg-gray-500/10 rounded-2xl border border-white/5">
+        <button 
+          onClick={() => setViewScope('my')}
+          className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewScope === 'my' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500'}`}
+        >
+          My Sales Report
+        </button>
+        <button 
+          onClick={() => setViewScope('others')}
+          className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewScope === 'others' ? 'bg-orange-600 text-white shadow-lg' : 'text-gray-500'}`}
+        >
+          Others Sales Report
+        </button>
+      </div>
+
+      {/* Primary KPI Grid */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className={`ios-card border-none shadow-xl text-white ${viewScope === 'my' ? 'bg-gradient-to-br from-blue-600 to-indigo-700 shadow-blue-500/20' : 'bg-gradient-to-br from-orange-600 to-red-700 shadow-orange-500/20'}`}>
+           <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">MTD {viewScope === 'my' ? 'Revenue' : 'Staff Help'}</p>
+           <p className="text-2xl font-black">₹{mtdRevenue.toLocaleString()}</p>
+           <div className="mt-4 w-full bg-white/20 h-1 rounded-full">
+              <div className="bg-white h-full" style={{ width: `${Math.min((mtdRevenue/profile.monthTarget)*100, 100)}%` }} />
+           </div>
+        </div>
+        <div className="ios-card glass border-orange-500/20 shadow-lg">
+           <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-1 text-orange-500">Walk-ins Attended</p>
+           <p className="text-2xl font-black">{mtdWalkins}</p>
+           <p className="text-[9px] mt-2 opacity-50 uppercase font-black">Conversion Potential</p>
+        </div>
+      </div>
+
+      {/* Weekly Attendance Counter */}
+      <div className="ios-card glass flex justify-between items-center py-4 px-6 border-blue-500/20">
+         <div>
+            <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Weekly Attendance</p>
+            <p className="text-2xl font-black text-blue-500">{weeklyAttendedCount} <span className="text-xs font-medium text-gray-500 opacity-60 ml-1">Customers</span></p>
+         </div>
+         <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+            <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+         </div>
+      </div>
+
+      {/* Weekly Family Report */}
+      <div className="ios-card glass">
+        <div className="flex justify-between items-center mb-4 px-1">
+          <h3 className="text-[10px] font-black uppercase tracking-widest opacity-40">Weekly Category Report</h3>
+          <span className="text-[9px] font-black text-blue-500 uppercase">Sales Rate Audit</span>
+        </div>
+        <div className="space-y-5">
+           {weeklyFamilyReport.map(insight => (
+             <div key={insight.category} className="space-y-2 group">
+                <div className="flex justify-between items-end">
+                   <div>
+                      <p className="text-xs font-bold">{insight.category}</p>
+                      <p className="text-[9px] opacity-40 font-black uppercase mt-0.5">
+                        {insight.walkins} Walk-ins • {insight.salesCount} Sales
+                      </p>
+                   </div>
+                   <div className="text-right">
+                      <p className="text-xs font-black text-green-500">{insight.salesRate.toFixed(0)}% Rate</p>
+                      <p className="text-[9px] font-bold opacity-40">₹{insight.rev.toLocaleString()}</p>
+                   </div>
+                </div>
+                <div className="w-full bg-gray-500/10 h-1.5 rounded-full overflow-hidden flex">
+                   <div className="h-full bg-green-500 transition-all duration-1000" style={{ width: `${insight.salesRate}%` }} />
+                </div>
+             </div>
+           ))}
+           {weeklyFamilyReport.length === 0 && <p className="text-center py-6 text-xs opacity-30 italic">No category data for this week</p>}
+        </div>
+      </div>
+
+      {/* Calendar Strip */}
+      <div className="ios-card glass !p-4">
+        <div className="calendar-strip">
+          {calendarDates.map(d => {
+            const hasSale = sales.some(s => s.date === d.date && s.interactionType === 'Sale');
+            return (
+              <div 
+                key={d.date} 
+                onClick={() => setSelectedDate(d.date)}
+                className={`calendar-day ${selectedDate === d.date ? 'active' : 'glass'}`}
+              >
+                <span className={`text-[9px] font-bold uppercase ${selectedDate === d.date ? 'text-white' : 'text-gray-500'}`}>{d.day}</span>
+                <span className="text-lg font-bold">{d.num}</span>
+                {hasSale && <div className={`absolute bottom-2 w-1 h-1 rounded-full ${selectedDate === d.date ? 'bg-white' : 'bg-green-500'}`} />}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Day Report Card Trigger */}
+      <div 
+        onClick={() => setShowDayReportCard(true)}
+        className="ios-card glass border-[var(--accent)]/20 cursor-pointer active:scale-[0.98] transition-all bg-gradient-to-r from-[var(--accent)]/5 to-transparent"
+      >
+        <div className="flex justify-between items-center mb-2">
+           <h3 className="font-bold text-sm">Review: {new Date(selectedDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</h3>
+           <span className="text-xs font-black text-blue-500">₹{selectedRevenue.toLocaleString()}</span>
+        </div>
+        <p className="text-[9px] opacity-40 uppercase font-black tracking-widest">Tap for Daily Report Card</p>
+      </div>
+
+      {/* Detailed Report Card Modal */}
+      {showDayReportCard && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-black/85 backdrop-blur-lg" onClick={() => setShowDayReportCard(false)}></div>
+          <div className="relative w-full max-w-sm bg-[var(--card-bg)] rounded-[32px] overflow-hidden shadow-2xl border border-white/5 flex flex-col max-h-[85vh]">
+            <div className={`p-8 text-white relative ${viewScope === 'my' ? 'bg-gradient-to-br from-blue-600 to-indigo-800' : 'bg-gradient-to-br from-orange-600 to-red-800'}`}>
+               <button onClick={() => setShowDayReportCard(false)} className="absolute top-4 right-4 p-2 bg-black/20 rounded-full">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+               </button>
+               <p className="text-[10px] font-black uppercase tracking-widest opacity-60">{viewScope === 'my' ? 'My Performance Card' : 'Staff Assistance Card'}</p>
+               <h2 className="text-2xl font-black mt-1">{new Date(selectedDate).toLocaleDateString(undefined, { day: 'numeric', month: 'long' })}</h2>
+            </div>
+            
+            <div className="p-6 space-y-4 overflow-y-auto flex-1 scrollbar-hide">
+               {selectedEntries.filter(e => viewScope === 'my' ? e.attendedBy === 'Me' : e.attendedBy === 'Other Staff').map(e => (
+                 <div key={e.id} className={`p-4 rounded-2xl border transition-all ${
+                   e.brandName.toLowerCase() === profile.brand.toLowerCase() 
+                     ? 'bg-blue-600/5 border-blue-500/20' 
+                     : 'bg-red-600/5 border-red-500/10'
+                 }`}>
+                    <div className="flex justify-between items-start mb-2">
+                       <span className="text-[10px] font-black">{e.interactionType === 'Sale' ? `₹${(e.price*e.quantity).toLocaleString()}` : (e.walkins ? `${e.walkins} Enq` : e.interactionType)}</span>
+                       <span className="text-[8px] font-black uppercase opacity-40">{e.brandName}</span>
+                    </div>
+                    <p className="text-xs font-black leading-tight">{e.category} | {e.productName}</p>
+                    <div className="mt-2 pt-2 border-t border-white/5">
+                       <p className="text-[9px] font-black text-blue-500 uppercase">Reason / Feedback:</p>
+                       <p className="text-[10px] font-medium leading-relaxed opacity-80">{e.reasonForPurchase}</p>
+                       {e.customerFeedback && <p className="text-[10px] opacity-60 italic mt-1">"{e.customerFeedback}"</p>}
+                    </div>
+                 </div>
+               ))}
+               {selectedEntries.length === 0 && <p className="text-center py-10 text-xs opacity-30 italic">No logs matched for this date</p>}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Dashboard;
